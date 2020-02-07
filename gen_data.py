@@ -39,7 +39,7 @@ def load_prev(path):
         line = line.split(", ")
         pair = [int(x) for x in line]
         pairs.append(pair)
-        
+
     return pairs
 
 def filter_pairs(pairs, s):
@@ -179,15 +179,15 @@ def parse_all_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-range",type=int,\
-            help="Max value of integers to be generated",default=1000)
+            help="Max value of integers to be generated [default=1000]",default=1000)
     parser.add_argument("-samples",type=int,\
-            help="The number of integer pairs to be generated",default=100)
+            help="The number of integer pairs to be generated [default=100]",default=100)
     parser.add_argument("-dir",type=str,\
-            help="Output directory for number pairs generated", default="data")
+            help="Output directory for number pairs generated [default=data]", default="data")
     parser.add_argument("-task",type=str,\
-            help="Task for data to be generated", default="semantic")
+            help="Task for data to be generated", choices=['syntax','semantic','both'])
     parser.add_argument("-lang",type=str,\
-            help="Language of data to be generated", default="en")
+            help="Language of data to be generated [default=en]", default="en")
     parser.add_argument("-load",type=str,\
             help="Location of  previous set of integer pairs to create data")
     
