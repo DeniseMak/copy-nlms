@@ -11,15 +11,15 @@ def main():
         pairs = load_prev(args.load)
     else:
         pairs = gen_pairs(args.range, args.samples)
-        output_pairs(args.dir + "int_pairs.txt", pairs, "comma")
+        output_pairs(args.dir + "int_pairs.txt", pairs, "colon")
     
     if args.task == "semantic" or args.task == "both":
         labels = gen_sem_labels(pairs)
         final = to_text(pairs, args.lang)
-        output_pairs(args.dir + "sem_pair_words.txt", final, "comma")
+        output_pairs(args.dir + "sem_pair_words.txt", final, "colon")
 
     if args.task == "syntax" or args.task == "both":
-        pairs, labels = filter_pairs(pairs, args.s)
+        pairs, labels = filter_pairs(pairs, args.samples)
         text = to_text(pairs, args.lang)
         output_pairs(args.dir + "syn_pair_words.txt", text, "and")
         output_indvs(args.dir + "syn_labels.txt", labels)
@@ -36,7 +36,7 @@ def load_prev(path):
 
     pairs = list()
     for line in lines:
-        line = line.split(", ")
+        line = line.split("; ")
         pair = [int(x) for x in line]
         pairs.append(pair)
 
@@ -125,8 +125,8 @@ def output_pairs(path, data, mode):
     :param mode: (str) How to join the data into strings
     """
     string = ""
-    if mode == "comma":
-        j = ", "
+    if mode == "colon":
+        j = "; "
     # NOTE: What do do for ungrammatical data? I feel like the NN might just 
     # learn 'and' is more frequent in ungrammatical nums
     else:
