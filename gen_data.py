@@ -1,7 +1,11 @@
+from kanji_to_romaji import kanji_to_romaji
 from num2words import num2words
 import argparse
+# import bangla
 import random
 import os
+
+#NOTE: GET RID OF - AND " "
 
 def main(): 
     args = parse_all_args()
@@ -16,7 +20,7 @@ def main():
     if args.task == "semantic" or args.task == "both":
         labels = gen_sem_labels(pairs)
         final = to_text(pairs, args.lang)
-        output_pairs(args.dir + "sem_pair_words.txt", final, "colon")
+        output_pairs(args.dir + args.lang + "_sem_pair_words.txt", final, "colon")
 
     if args.task == "syntax" or args.task == "both":
         pairs, labels = filter_pairs(pairs, args.samples)
@@ -81,6 +85,10 @@ def to_text(pairs, lang):
         new = [num2words(pair[0], lang=lang)]
         if pair[1] > -1:
             new.append(num2words(pair[1], lang=lang))
+        if lang == 'ja':
+            new[0] = kanji_to_romaji(new[0])
+            if len(new) == 2:
+                new[1] = kanji_to_romaji(new[1])
         text.append(new)
 
     return text
