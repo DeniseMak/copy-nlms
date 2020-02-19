@@ -4,8 +4,7 @@ import argparse
 # import bangla
 import random
 import os
-
-#NOTE: GET RID OF - AND " "
+import re
 
 def main(): 
     args = parse_all_args()
@@ -85,10 +84,14 @@ def to_text(pairs, lang):
         new = [num2words(pair[0], lang=lang)]
         if pair[1] > -1:
             new.append(num2words(pair[1], lang=lang))
-        if lang == 'ja':
-            new[0] = kanji_to_romaji(new[0])
-            if len(new) == 2:
-                new[1] = kanji_to_romaji(new[1])
+        
+        for i in range(0, len(new)):
+            if lang == 'ja':
+                new[i] = kanji_to_romaji(new[i])
+            
+            new[i] = re.sub('[^a-zA-Z0-9\n\.]', ' ', new[i])
+            new[i] = re.sub(' +', ' ', new[i])
+            new[i] = new[i].strip()
         text.append(new)
 
     return text
