@@ -13,7 +13,7 @@ def main():
           pairs = load_prev(args.load)
      else:
           pairs = gen_pairs(args.range, args.samples)
-          output_pairs(args.dir + "int_pairs.txt", pairs)
+          output_pairs(args.dir + "syn_int_pairs.txt", pairs)
 
      pairs, labels = filter_pairs(pairs, args.samples)
      

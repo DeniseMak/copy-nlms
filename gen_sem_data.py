@@ -13,7 +13,7 @@ def main():
         pairs = load_prev(args.load)
     else:
         pairs = gen_pairs(args.range, args.samples)
-        output_pairs(args.dir + "int_pairs.txt", pairs)
+        output_pairs(args.dir + "sem_int_pairs.txt", pairs)
     
     labels = gen_sem_labels(pairs)
     final = to_text(pairs, args.lang)
@@ -91,8 +91,8 @@ def to_text(pairs, lang):
 
 def gen_sem_labels(pairs):
     """
-    Create labels based on whether pairs of integers are greater than (0), less 
-    than (1), or equal (2) to each other.
+    Create labels based on whether integer in position 0 of pair is greater than (0), less 
+    than (1), or equal (2) to the other.
 
     :param pairs: (list) Integer pairs to label
     :return labels: (list) Classes for given pairs
