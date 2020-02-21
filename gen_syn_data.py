@@ -52,8 +52,6 @@ def ungram_split(pairs, labels, samples, lang):
 
     return pairs, labels
 
-
-
 def load_prev(path):
     """
     Load random integers from previously generated dataset
@@ -130,24 +128,6 @@ def to_text(pairs, lang):
         text.append(new)
 
     return text
-
-def gen_sem_labels(pairs):
-    """
-    Create labels based on whether pairs of integers are greater than (0), less 
-    than (1), or equal (2) to each other.
-
-    :param pairs: (list) Integer pairs to label
-    :return labels: (list) Classes for given pairs
-    """
-    labels = list()
-    for pair in pairs:
-        if pair[0] > pair[1]:
-            labels.append(0)
-        elif pair[0] < pair[1]:
-            labels.append(1)
-        else:
-            labels.append(2)
-    return labels
 
 def gen_pairs(r, s):
     """
