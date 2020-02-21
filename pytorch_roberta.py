@@ -84,11 +84,11 @@ def train(lr, train, test, epochs, verbosity, config):
             loss.backward()
             optimizer.step()
             if i % verbosity == 0:
-                train_acc = validation(model, train)
-                print('train acc')
                 test_acc = validation(model, test)
-                print('test acc')
-                print('({}.{})  Loss: {}  Train Acc: {}  Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
+                print('({}.{}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
+        train_acc = validation(model, train)
+        test_acc = validation(model, test)
+        print('({}.{}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model
 
