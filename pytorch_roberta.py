@@ -17,6 +17,9 @@ from pytorch_transformers import RobertaModel, RobertaTokenizer
 from pytorch_transformers import RobertaForSequenceClassification, RobertaConfig
 
 tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+CUDA = torch.cuda.is_available()
+if CUDA:
+    print('Cuda is availible')
 
 class Pairs(Dataset):
     def __init__(self, dataframe):
@@ -60,7 +63,7 @@ def train(lr, train, test, epochs, verbosity, config):
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
     # Check if Cuda is Available
-    if torch.cuda.is_available():
+    if CUDA:
         device = torch.device("cuda")
         model = model.cuda()
 
@@ -71,7 +74,7 @@ def train(lr, train, test, epochs, verbosity, config):
         for i, (sent, label) in enumerate(train):
             optimizer.zero_grad()
             sent = sent.squeeze(0)
-            if torch.cuda.is_available():
+            if CUDA:
                 sent = sent.cuda()
                 label = label.cuda()
             output = model.forward(sent)[0]
@@ -102,7 +105,7 @@ def validation(model, data):
     for sent, label in data:
 
         sent = sent.squeeze(0)
-        if torch.cuda.is_available():
+        if CUDA:
             sent = sent.cuda()
             label = label.cuda()
         output = model.forward(sent)[0]
@@ -212,7 +215,7 @@ def get_class(num, model, label_to_ix):
     """
     model.eval()
     num, _ = prepare_features(num)
-    if torch.cuda.is_available():
+    if CUDA:
         num = num.cuda()
     output = model(num)[0]
     _, pred_label = torch.max(output.data, 1)
