@@ -152,14 +152,14 @@ def load_data(pair_path, label_path):
     """
     Load data for model
     """
-    pairs = read_file(pair_path)
+    examples = read_file(pair_path)
     labels = read_file(label_path)
 
-    for i in range(0, len(pairs)):
-        pairs[i] = pairs[i].strip()#.split(", ")
+    for i in range(0, len(examples)):
+        examples[i] = examples[i].strip()#.split(", ")
         labels[i] = labels[i].strip()
 
-    X = pd.DataFrame(pairs)
+    X = pd.DataFrame(examples)
     y = pd.DataFrame(labels)
     dataset = pd.concat([X, y], axis=1, sort=False)
     dataset.columns = ['num', 'label']
