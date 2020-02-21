@@ -171,8 +171,6 @@ def load_data(pair_path, label_path):
         frac=train_size, random_state=200).reset_index(drop=True)
     test_dataset = dataset.drop(train_dataset.index).reset_index(drop=True)
 
-    print(train_dataset)
-
     print("FULL Dataset: {}".format(dataset.shape))
     print("TRAIN Dataset: {}".format(train_dataset.shape))
     print("TEST Dataset: {}".format(test_dataset.shape))
