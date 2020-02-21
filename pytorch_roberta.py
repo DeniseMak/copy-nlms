@@ -38,14 +38,18 @@ class Pairs(Dataset):
 
 def main():
     args = parse_all_args()
-    train_set, test_set, label_to_ix = load_data(args.data, args.labels)
+    train_set, test_set, label_to_ix, train_tmp, test_tmp = load_data(args.data, args.labels)
+    train_tmp.to_csv(args.data.replace(".txt", "_train.txt"))
+    test_tmp.to_csv(args.data.replace(".txt", "_test.txt"))
 
     print("Finished loading data")
     config = RobertaConfig.from_pretrained('roberta-base')
     config.num_labels = len(list(label_to_ix.values()))
     
     print("Beginning training")
-    model = train(args.lr, train_set, test_set, args.epochs, args.v, config)
+    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, config)
+    train_preds.to_csv(args.data.replace(".txt", "_train_preds.txt"))
+    test_preds.to_csv(args.data.replace(".txt", "_test_preds.txt"))
     get_class('two hundred hundred', model, label_to_ix)
     
 def train(lr, train, test, epochs, verbosity, config):
@@ -61,6 +65,9 @@ def train(lr, train, test, epochs, verbosity, config):
     model = RobertaForSequenceClassification(config)
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
+
+    train_preds = list()
+    test_preds = list()
 
     # Check if Cuda is Available
     if CUDA:
@@ -86,11 +93,11 @@ def train(lr, train, test, epochs, verbosity, config):
             if i % verbosity == 0:
                 test_acc = validation(model, test)
                 print('({}.{}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
-        train_acc = validation(model, train)
-        test_acc = validation(model, test)
+        train_acc, train_preds = validation(model, train)
+        test_acc, test_preds = validation(model, test)
         print('({}.{}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
-    return model
+    return model, pd.DataFrame(train_preds), pd.DataFrame(test_preds)
 
 def validation(model, data):
     """
@@ -102,6 +109,7 @@ def validation(model, data):
     """
     correct = 0
     total = 0
+    predictions = list()
     for sent, label in data:
 
         sent = sent.squeeze(0)
@@ -110,11 +118,12 @@ def validation(model, data):
             label = label.cuda()
         output = model.forward(sent)[0]
         _, predicted = torch.max(output.data, 1)
+        predictions.append(predicted)
         total += 1
         correct += (predicted.cpu() == label.cpu()).sum()
     accuracy = correct.numpy() / total
 
-    return accuracy
+    return accuracy, predictions
 
 def label_dict(dataset):
     """
@@ -147,7 +156,8 @@ def load_data(pair_path, label_path):
     labels = read_file(label_path)
 
     for i in range(0, len(pairs)):
-        pairs[i] = pairs[i].split(", ")
+        pairs[i] = pairs[i].strip()#.split(", ")
+        labels[i] = labels[i].strip()
 
     X = pd.DataFrame(pairs)
     y = pd.DataFrame(labels)
@@ -160,6 +170,8 @@ def load_data(pair_path, label_path):
     train_dataset = dataset.sample(
         frac=train_size, random_state=200).reset_index(drop=True)
     test_dataset = dataset.drop(train_dataset.index).reset_index(drop=True)
+
+    print(train_dataset)
 
     print("FULL Dataset: {}".format(dataset.shape))
     print("TRAIN Dataset: {}".format(train_dataset.shape))
@@ -176,7 +188,7 @@ def load_data(pair_path, label_path):
     training_loader = DataLoader(training_set, **params)
     testing_loader = DataLoader(testing_set, **params)
 
-    return training_loader, testing_loader, label_to_ix
+    return training_loader, testing_loader, label_to_ix, train_dataset, test_dataset
 
 def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_token=True, include_SEP_token=True):
     # Tokenzine Input
