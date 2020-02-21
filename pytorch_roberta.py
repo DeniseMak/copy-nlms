@@ -18,6 +18,21 @@ from pytorch_transformers import RobertaForSequenceClassification, RobertaConfig
 
 tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
 
+class Pairs(Dataset):
+    def __init__(self, dataframe):
+        self.len = len(dataframe)
+        self.data = dataframe
+
+    def __getitem__(self, index):
+        utterance = self.data.num[index]
+        label = self.data.label[index]
+        X, _ = prepare_features(utterance)
+        y = torch.tensor(int(self.data.label[index]))
+        return X, y
+
+    def __len__(self):
+        return self.len
+
 def main():
     args = parse_all_args()
     train_set, test_set, label_to_ix = load_data(args.data, args.labels)
@@ -25,24 +40,32 @@ def main():
     print("Finished loading data")
     config = RobertaConfig.from_pretrained('roberta-base')
     config.num_labels = len(list(label_to_ix.values()))
+    
+    print("Beginning training")
+    model = train(args.lr, train_set, test_set, args.epochs, args.v, config)
+    get_class('two hundred hundred', model, label_to_ix)
+    
+def train(lr, train, test, epochs, verbosity, config):
+    """
+    Train a model using the specified parameters
 
+    :param lr: Learning rate for the optimizer
+    :param train: Training DataLoader
+    :param test: Testing DataLoader
+    :param verbosity: How often to calculate and print test accuracy
+    :return model: trained model
+    """
     model = RobertaForSequenceClassification(config)
+    loss_function = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
     # Check if Cuda is Available
     if torch.cuda.is_available():
         device = torch.device("cuda")
         model = model.cuda()
 
-    loss_function = nn.CrossEntropyLoss()
-    learning_rate = args.lr
-    optimizer = optim.Adam(params=model.parameters(), lr=learning_rate)
-
     model = model.train()
-    print("Beginning training")
-    train(model, optimizer, loss_function, train_set, test_set, args.epochs, args.v)
-    get_class('two hundred hundred', model, label_to_ix)
-    
-def train(model, optimizer, loss_function, train, test, epochs, verbosity):
+
     for epoch in range(0, epochs):
         print("Epoch: " + str(epoch))
         for i, (sent, label) in enumerate(train):
@@ -58,13 +81,25 @@ def train(model, optimizer, loss_function, train, test, epochs, verbosity):
             loss.backward()
             optimizer.step()
             if i % verbosity == 0:
-                accuracy = validation(model, test)
-                print('({}.{})  Loss: {}  Accuracy: {}%'.format(epoch, i, loss.item(), accuracy))
+                train_acc = validation(model, train)
+                print('train acc')
+                test_acc = validation(model, test)
+                print('test acc')
+                print('({}.{})  Loss: {}  Train Acc: {}  Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
-def validation(model, test):
+    return model
+
+def validation(model, data):
+    """
+    Calculate accuracy of the model on a set of data
+
+    :param model: Trained model
+    :param data: Data set to predict and calculate on
+    :return accuracy: Model accuracy on dataset
+    """
     correct = 0
     total = 0
-    for sent, label in test:
+    for sent, label in data:
 
         sent = sent.squeeze(0)
         if torch.cuda.is_available():
@@ -74,11 +109,17 @@ def validation(model, test):
         _, predicted = torch.max(output.data, 1)
         total += 1
         correct += (predicted.cpu() == label.cpu()).sum()
-    accuracy = 100.00 * correct.numpy() / total
+    accuracy = correct.numpy() / total
 
     return accuracy
 
 def label_dict(dataset):
+    """
+    Map labels to indicies in a dictionary
+
+    :param dataset: Data with labels
+    :return label_to_ix: Label to index dictionary
+    """
     label_to_ix = {}
     for label in dataset.label:
         for word in label.split():
@@ -127,15 +168,14 @@ def load_data(pair_path, label_path):
     params = {'batch_size': 1,
             'shuffle': True,
             'drop_last': False,
-            'num_workers': 1}
+            'num_workers': 8}
 
     training_loader = DataLoader(training_set, **params)
     testing_loader = DataLoader(testing_set, **params)
 
     return training_loader, testing_loader, label_to_ix
 
-def prepare_features(seq_1, max_seq_length=300,
-                     zero_pad=False, include_CLS_token=True, include_SEP_token=True):
+def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_token=True, include_SEP_token=True):
     # Tokenzine Input
     tokens_a = tokenizer.tokenize(seq_1)
 
@@ -162,21 +202,6 @@ def prepare_features(seq_1, max_seq_length=300,
             input_ids.append(0)
             input_mask.append(0)
     return torch.tensor(input_ids).unsqueeze(0), input_mask
-
-class Pairs(Dataset):
-    def __init__(self, dataframe):
-        self.len = len(dataframe)
-        self.data = dataframe
-
-    def __getitem__(self, index):
-        utterance = self.data.num[index]
-        label = self.data.label[index]
-        X, _ = prepare_features(utterance)
-        y = torch.tensor(int(self.data.label[index]))
-        return X, y
-
-    def __len__(self):
-        return self.len
 
 def get_class(num, model, label_to_ix):
     """
