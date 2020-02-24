@@ -48,8 +48,8 @@ def main():
     
     print("Beginning training")
     model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, config)
-    train_preds.to_csv(args.data.replace(".txt", "_train_preds.txt"))
-    test_preds.to_csv(args.data.replace(".txt", "_test_preds.txt"))
+    train_preds.to_csv(args.data.replace(".txt", "_train_preds.csv"))
+    test_preds.to_csv(args.data.replace(".txt", "_test_preds.csv"))
     get_class('two hundred hundred', model, label_to_ix)
     
 def train(lr, train, test, epochs, verbosity, config):
@@ -92,10 +92,10 @@ def train(lr, train, test, epochs, verbosity, config):
             optimizer.step()
             if i % verbosity == 0:
                 test_acc = validation(model, test)
-                print('({}.{}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
+                print('({}.{}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc.item()))
         train_acc, train_preds = validation(model, train)
         test_acc, test_preds = validation(model, test)
-        print('({}.{}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
+        print('({}.{}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc.item(), test_acc.item()))
 
     return model, pd.DataFrame(train_preds), pd.DataFrame(test_preds)
 
@@ -118,7 +118,7 @@ def validation(model, data):
             label = label.cuda()
         output = model.forward(sent)[0]
         _, predicted = torch.max(output.data, 1)
-        predictions.append(predicted)
+        predictions.append(predicted.item())
         total += 1
         correct += (predicted.cpu() == label.cpu()).sum()
     accuracy = correct.numpy() / total
