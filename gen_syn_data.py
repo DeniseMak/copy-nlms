@@ -1,26 +1,25 @@
-from kanji_to_romaji import kanji_to_romaji
 from num2words import num2words
 import argparse
 import random
 import os
 import re
+import sys
 
 def main():     
-     args = parse_all_args()
-     pairs = list()
-     
-     if args.load:
-          pairs = load_prev(args.load)
-     else:
-          pairs = gen_pairs(args.range, args.samples)
-          output_pairs(args.dir + "syn_int_pairs.txt", pairs)
+    args = parse_all_args()
+    pairs = list() # Integers in pairs to create ungrammatical numbers
+    labels = list()
+    
+    if args.load:
+        pairs = load_pairs(args.load)
+    else:
+        pairs,labels = gen_pairs(args.range, args.samples)
+        output_pairs(args.dir + "syn_int_pairs.txt", pairs)
 
-     pairs, labels = filter_pairs(pairs, args.samples)
-     
-     text = to_text(pairs, args.lang)
-     text, labels = ungram_split(text, labels, args.samples, args.lang)
-     output_pairs(args.dir + args.lang + "_syn_pair_words.txt", text)
-     output_indvs(args.dir + args.lang + "_syn_labels.txt", labels)
+    text = to_text(pairs, args.lang)
+    text, labels = ungram_split(text, labels, args.samples, args.lang)
+    output_pairs(args.dir + args.lang + "_syn_pair_words.txt", text)
+    output_indvs(args.dir + args.lang + "_syn_labels.txt", labels)
 
 def ungram_split(pairs, labels, samples, lang):
     """
@@ -52,10 +51,9 @@ def ungram_split(pairs, labels, samples, lang):
 
     return pairs, labels
 
-def load_prev(path):
+def load_pairs(path):
     """
     Load random integers from previously generated dataset
-
     :param path: (str) Path to integer pair file
     :return pairs: (list) Data from file as list of integer pairs
     """
@@ -65,51 +63,70 @@ def load_prev(path):
     pairs = list()
     for line in lines:
         line = line.split(", ")
-        pair = [int(x) for x in line]
-        pairs.append(pair)
+        try:
+            pair = [int(x) for x in line]
+            pairs.append(pair)
+        except ValueError:
+            print("ERROR You are attempting to load non-integer pairs from: " + path)
+            sys.exit(-1)
+        
 
     return pairs
 
-def filter_pairs(pairs, s):
+def gen_pairs(r, s):
     """
-    Check whether the second number in a pair is larger than the first, by a factor of 10,
-    in order to decide which numbers will be ungrammatical. Later, if there are 2 numbers in a
-    pair they will be used to generate 'ungrammatical' words, and single 
-    numbers will be grammatical
-
-    :param pairs: (list) Randomly generated list of integer pairs
-    :param s: (int) Number of pairs
-
-    :return new_pairs: (list) Pairs with random entries reduced to length one
-    :return labels: (list) Denotes which pairs have been reduced
+    - Generate random pairs of integers
+    - Half of pairs have format [n, number > n by factor of 10] (or vice versa) (used to make ungrammatical number in text)
+    - Half of pairs have format [n, -1] (used to make grammatical number in text)
+    
+    :param s: (int) Number of pairs (s/2 grammatical, s/2 ungrammatical)
+    :param r: (int) Range of numbers to make pairs in [0,r]
+    :return pairs: (list) Grammatical and ungrammatical pairs
+    :return labels: (list) Denotes which pairs are ungrammatical (1) / grammatical (0)
     """
+
+    pairs = list()
     labels = list()
-    new_pairs = list()
-    for i in range(0, s):
-        new_pair = [pairs[i][0]]
-        num_dig = len(str(new_pair[0]))
-        for_check = ["0"] * num_dig
-        for_check[0] = str(new_pair[0])[0]
-        for_check = int("".join(for_check))
 
-        # Add some randomization to the party
-        if pairs[i][1] > for_check and random.choice([True, False]):
-            new_pair.append(pairs[i][1])
-            labels.append(1)
+    # Generate grammatical pairs
+    for i in range(0, int(s/2)):
+        p_i = []
+        p_i.append(random.randint(0, r))
+        p_i.append(-1)
+        pairs.append(p_i)
+        labels.append(0)
+
+    # Generate ungrammatical pairs
+    for i in range(0, int(s/2)):
+        p_i = []
+
+        # Generate a random number in range
+        p_i.append(random.randint(0, r))
+
+        # Find that number's first digit to factor of 10
+        # Ex. 125 -> 1000
+        fac10 = int("".join(str(p_i[0]) + "0"))
+        
+        if fac10 >= r:
+            # Make the number to add to pair smaller (still in range)
+            num = int((p_i[0] / 10)) - 10
+            rand = random.randint(0, num)
+            p_i.append(rand)
         else:
-            new_pair.append(-1)
-            labels.append(0)
-        new_pairs.append(new_pair)
+            # Make the number to add to pair bigger (still in range)
+            rand = random.randint(fac10, r)
+            p_i.append(rand)
+        
+        pairs.append(p_i)
+        labels.append(1)
 
-    return new_pairs, labels
+    return pairs, labels
 
 def to_text(pairs, lang):
     """
     Convert positive integers in list of lists to word form
-
     :param pairs: (list) Integers to convert
     :param lang: (str) Language to convert them to
-
     :return text: (list) Integer pairs in word form
     """
     text = list()
@@ -118,10 +135,7 @@ def to_text(pairs, lang):
         if pair[1] > -1:
             new.append(num2words(pair[1], lang=lang))
         
-        for i in range(0, len(new)):
-            if lang == 'ja':
-                new[i] = kanji_to_romaji(new[i])
-            
+        for i in range(0, len(new)):            
             new[i] = re.sub('[^a-zA-Z0-9\n\.]', ' ', new[i])
             new[i] = re.sub(' +', ' ', new[i])
             new[i] = new[i].strip()
@@ -129,42 +143,22 @@ def to_text(pairs, lang):
 
     return text
 
-def gen_pairs(r, s):
-    """
-    Create of list of [s] pairs of integers in range (0, r)
-
-    :param r: (int) Max value for integers in list
-    :param s: (int) Number of pairs to 
-    :return pairs: (list) List of generated number pairs
-    """
-    p1 = gen_ints(r, s)
-    p2 = gen_ints(r, s)
-    pairs = [[p1[i], p2[i]] for i in range(0, s)] 
-    return pairs
-
 def output_pairs(path, data):
     """
-    Format data and write it to a specified file
-
+    Format number pairs write to a specified file
     :param path: (str) Filepath to write to
     :param data: (list) Data to format and write
-    :param mode: (str) How to join the data into strings
     """
-    string = ""
-    
-    for item in data:
-        
-        joiner = random.choice([" and ", " "])
-        line = joiner.join(str(x) for x in item)
-        string += line + "\n"
 
     with open(path, "w+") as f:
-        f.write(string)
+        for item in data:
+            for element in item:
+                f.write(str(element) + " ")
+            f.write("\n")    
 
 def output_indvs(path, data):
     """
     Format data and write it to a specified file
-
     :param path: (str) Filepath to write to
     :param data: (list) Data to format and write
     """
@@ -177,24 +171,9 @@ def output_indvs(path, data):
     with open(path, "w+") as f:
         f.write(string)
 
-def gen_ints(r, samples):
-    """
-    Generate a specified number of random integers
-
-    :param r: (int) Max value of integers to be generated
-    :param samples: (int) Amount of integers to be generated
-
-    :return (list): Random integers in range (0,r) of length s
-    """
-    ints = list()
-    for i in range(0, samples):
-        ints.append(random.randint(0, r))
-    return ints
-
 def parse_all_args():
     """
     Parse commandline arguments and create folder for output if necessary
-
     :return args: Parsed arguments
     """
 
