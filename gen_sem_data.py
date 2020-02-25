@@ -1,4 +1,3 @@
-from kanji_to_romaji import kanji_to_romaji
 from num2words import num2words
 import argparse
 import random
@@ -84,9 +83,6 @@ def to_text(pairs, lang):
             new.append(num2words(pair[1], lang=lang))
         
         for i in range(0, len(new)):
-            if lang == 'ja':
-                new[i] = kanji_to_romaji(new[i])
-            
             new[i] = re.sub('[^a-zA-Z0-9\n\.]', ' ', new[i])
             new[i] = re.sub(' +', ' ', new[i])
             new[i] = new[i].strip()
