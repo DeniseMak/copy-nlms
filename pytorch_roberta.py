@@ -92,10 +92,10 @@ def train(lr, train, test, epochs, verbosity, config):
             optimizer.step()
             if i % verbosity == 0:
                 test_acc = validation(model, test)
-                print('({}.{}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc.item()))
+                print('({}.{}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc[0]))
         train_acc, train_preds = validation(model, train)
         test_acc, test_preds = validation(model, test)
-        print('({}.{}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc.item(), test_acc.item()))
+        print('({}.{}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model, pd.DataFrame(train_preds), pd.DataFrame(test_preds)
 

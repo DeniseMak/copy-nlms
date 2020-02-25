@@ -73,7 +73,12 @@ def to_text(pairs, lang):
     :return text: (list) Integer pairs in word form
     """
     text = list()
+
+    with open('./data/' + lang + '_templates.txt', 'r') as f:
+        sentences = f.readlines()
+
     for pair in pairs:
+        sent = random.choice(sentences)
         new = [num2words(pair[0], lang=lang)]
         if pair[1] > -1:
             new.append(num2words(pair[1], lang=lang))
@@ -85,6 +90,7 @@ def to_text(pairs, lang):
             new[i] = re.sub('[^a-zA-Z0-9\n\.]', ' ', new[i])
             new[i] = re.sub(' +', ' ', new[i])
             new[i] = new[i].strip()
+            new[i] = sent.replace('***', new[i]).strip()
         text.append(new)
 
     return text
