@@ -151,18 +151,18 @@ def output_pairs(path, data, lang):
     :param path: (str) Filepath to write to
     :param data: (list) Data to format and write
     """
-    with open('./data/' + lang + '_templates.txt', 'r') as f:
+    with open('./data/' + lang + '_templates.txt', 'r', encoding="utf-8") as f:
         sentences = f.readlines()
 
-    with open(path, "w+") as f:
+    with open(path, "w+", encoding="utf-8") as f:
         for item in data:
             num = ""
             for element in item:
                 if element != -1:
                     num += str(element) + " "
 
-            if type(item) == type([]):
-                if type(item[0]) == type(""):
+            if type(item) == list:
+                if type(item[0]) == str:
                     f.write(random.choice(sentences).replace('***', num).replace('  ', ' ').strip() + '\n')
                 else:
                     f.write(num + '\n')
