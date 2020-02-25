@@ -163,11 +163,11 @@ def gen_ints(r, samples):
     :param r: (int) Max value of integers to be generated
     :param samples: (int) Amount of integers to be generated
 
-    :return (list): Random integers in range (0,r) of length s
+    :return (list): Random integers in range (2,r) of length s
     """
     ints = list()
     for i in range(0, samples):
-        ints.append(random.randint(0, r))
+        ints.append(random.randint(2, r))
     return ints
 
 def parse_all_args():
