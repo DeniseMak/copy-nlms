@@ -163,7 +163,11 @@ def output_pairs(path, data, lang):
 
             if type(item) == list:
                 if type(item[0]) == str:
-                    f.write(random.choice(sentences).replace('***', num).replace('  ', ' ').strip() + '\n')
+                    string = re.sub(' +', ' ', random.choice(sentences).replace('***', num)).strip() 
+                    if lang == 'ja':
+                        f.write(string.replace(' ', '') + '\n')
+                    else:
+                        f.write(string + '\n')
                 else:
                     f.write(num + '\n')
             else:
