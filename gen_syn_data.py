@@ -18,15 +18,27 @@ def main():
 
     text = to_text(pairs, args.lang)
     text, labels = ungram_split(text, labels, args.samples, args.lang)
+
+    text = to_sent(text, args.lang)
+
     output_pairs(args.dir + args.lang + "_syn_pair_words.txt", text)
     output_indvs(args.dir + args.lang + "_syn_labels.txt", labels)
+
+def to_sent(text, lang):
+    with open('./data/' + lang + '_templates.txt', 'r') as f:
+        sentences = f.readlines()
+
+    for i in range(0, len(text)):
+        text[i] = [random.choice(sentences).replace('***', text[i][0]).strip()]
+
+    return text
 
 def ungram_split(pairs, labels, samples, lang):
     """
     Create the 'split' style ungrammatical words, atm only works 
     for english
     """
-    
+
     loops = 0
     while labels.count(1) < samples // 2:
         # Prevent infinite loop if no points meet conditions
