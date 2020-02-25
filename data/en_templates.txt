@@ -7,6 +7,6 @@ The boy has *** coins
 There are *** books in the library
 The hobbits ate breakfast number ***
 Legolas tossed *** dwarves
-There are *** rings of power
+There are *** rings
 They are taking *** hobbits to Isengard
 Smeagol wouldn't hurt *** flies
