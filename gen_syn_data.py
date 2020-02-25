@@ -93,7 +93,7 @@ def gen_pairs(r, s):
     # Generate grammatical pairs
     for i in range(0, int(s/2)):
         p_i = []
-        p_i.append(random.randint(0, r))
+        p_i.append(random.randint(2, r))
         p_i.append(-1)
         pairs.append(p_i)
         labels.append(0)
@@ -103,7 +103,7 @@ def gen_pairs(r, s):
         p_i = []
 
         # Generate a random number in range
-        p_i.append(random.randint(0, r))
+        p_i.append(random.randint(2, r))
 
         # Find that number's first digit to factor of 10
         # Ex. 125 -> 1000
