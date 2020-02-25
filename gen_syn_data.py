@@ -166,8 +166,7 @@ def output_pairs(path, data, lang):
             for element in item:
                 if element != -1:
                     num += str(element) + " "
-                # f.write()
-            # print(type(item))
+
             if type(item) == type([]):
                 print(type(item[0]))
                 if type(item[0]) == type(""):
