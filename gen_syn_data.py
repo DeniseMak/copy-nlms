@@ -138,7 +138,8 @@ def to_text(pairs, lang):
             new.append(num2words(pair[1], lang=lang))
         
         for i in range(0, len(new)):            
-            new[i] = re.sub('[^a-zA-Z0-9\n\.]', ' ', new[i])
+            new[i] = new[i].replace('-', ' ')
+            new[i] = new[i].replace(',', ' ')
             new[i] = re.sub(' +', ' ', new[i])
             new[i] = new[i].strip()
         text.append(new)
