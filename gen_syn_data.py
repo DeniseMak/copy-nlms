@@ -14,24 +14,20 @@ def main():
         pairs = load_pairs(args.load)
     else:
         pairs,labels = gen_pairs(args.range, args.samples)
-        output_pairs(args.dir + "syn_int_pairs.txt", pairs)
+        output_pairs(args.dir + "syn_int_pairs.txt", pairs, args.lang)
 
     text = to_text(pairs, args.lang)
     text, labels = ungram_split(text, labels, args.samples, args.lang)
 
-    text = to_sent(text, args.lang)
+    # text = to_sent(text, args.lang)
 
-    output_pairs(args.dir + args.lang + "_syn_pair_words.txt", text)
+    output_pairs(args.dir + args.lang + "_syn_pair_words.txt", text, args.lang)
     output_indvs(args.dir + args.lang + "_syn_labels.txt", labels)
 
-def to_sent(text, lang):
-    with open('./data/' + lang + '_templates.txt', 'r') as f:
-        sentences = f.readlines()
+# def to_sent(text, lang):
+   
 
-    for i in range(0, len(text)):
-        text[i] = [random.choice(sentences).replace('***', text[i][0]).strip()]
-
-    return text
+#     return text
 
 def ungram_split(pairs, labels, samples, lang):
     """
@@ -155,18 +151,31 @@ def to_text(pairs, lang):
 
     return text
 
-def output_pairs(path, data):
+def output_pairs(path, data, lang):
     """
     Format number pairs write to a specified file
     :param path: (str) Filepath to write to
     :param data: (list) Data to format and write
     """
+    with open('./data/' + lang + '_templates.txt', 'r') as f:
+        sentences = f.readlines()
 
     with open(path, "w+") as f:
         for item in data:
+            num = ""
             for element in item:
-                f.write(str(element) + " ")
-            f.write("\n")    
+                if element != -1:
+                    num += str(element) + " "
+                # f.write()
+            # print(type(item))
+            if type(item) == type([]):
+                print(type(item[0]))
+                if type(item[0]) == type(""):
+                    f.write(random.choice(sentences).replace('***', num).strip() + '\n')
+                else:
+                    f.write(num + '\n')
+            else:
+                f.write(num + '\n')
 
 def output_indvs(path, data):
     """
