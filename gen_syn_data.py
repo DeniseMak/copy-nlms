@@ -168,7 +168,6 @@ def output_pairs(path, data, lang):
                     num += str(element) + " "
 
             if type(item) == type([]):
-                print(type(item[0]))
                 if type(item[0]) == type(""):
                     f.write(random.choice(sentences).replace('***', num).strip() + '\n')
                 else:
