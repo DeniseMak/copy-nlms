@@ -5,7 +5,7 @@ import os
 import re
 import sys
 
-def main():     
+def main():
     args = parse_all_args()
     pairs = list() # Integers in pairs to create ungrammatical numbers
     labels = list()
