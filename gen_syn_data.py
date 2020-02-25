@@ -105,19 +105,34 @@ def gen_pairs(r, s):
         # Generate a random number in range
         p_i.append(random.randint(2, r))
 
+        num_str = str(p_i[0])
+        j = len(num_str) - 1
+        while num_str[j] == '0':
+            j -= 1
+        # j -= 1
+        # if j != len(num_str) - 1:
+        new = num_str[j:]
+        new = ['0']*len(new)
+        new[0] = '1'
+        
+        new = int(''.join(new))
+        # print(int(new))
+        rand = random.randint(new, r)
+        p_i.append(rand)
+
         # Find that number's first digit to factor of 10
         # Ex. 125 -> 1000
-        fac10 = int("".join(str(p_i[0]) + "0"))
+        # fac10 = int("".join(str(p_i[0]) + "0"))
         
-        if fac10 >= r:
-            # Make the number to add to pair smaller (still in range)
-            num = int((p_i[0] / 10)) - 10
-            rand = random.randint(0, num)
-            p_i.append(rand)
-        else:
-            # Make the number to add to pair bigger (still in range)
-            rand = random.randint(fac10, r)
-            p_i.append(rand)
+        # if fac10 >= r:
+        #     # Make the number to add to pair smaller (still in range)
+        #     num = int((p_i[0] / 10)) - 10
+        #     rand = random.randint(0, num)
+        #     p_i.append(rand)
+        # else:
+        #     # Make the number to add to pair bigger (still in range)
+        #     rand = random.randint(fac10, r)
+        #     p_i.append(rand)
         
         pairs.append(p_i)
         labels.append(1)
