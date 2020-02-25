@@ -73,7 +73,7 @@ def to_text(pairs, lang):
     """
     text = list()
 
-    with open('./data/' + lang + '_templates.txt', 'r') as f:
+    with open('./templates/' + lang + '_templates.txt', 'r') as f:
         sentences = f.readlines()
 
     for pair in pairs:

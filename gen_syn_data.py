@@ -152,7 +152,7 @@ def output_pairs(path, data, lang):
     :param path: (str) Filepath to write to
     :param data: (list) Data to format and write
     """
-    with open('./data/' + lang + '_templates.txt', 'r', encoding="utf-8") as f:
+    with open('./templates/' + lang + '_templates.txt', 'r', encoding="utf-8") as f:
         sentences = f.readlines()
 
     with open(path, "w+", encoding="utf-8") as f:
