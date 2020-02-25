@@ -5,8 +5,7 @@ There were *** cats in the house
 He could eat *** oranges
 The boy has *** coins
 There are *** books in the library
-The hobbits ate breakfast number ***
-Legolas tossed *** dwarves
+Legolas threw *** dwarves
 There are *** rings
-They are taking *** hobbits to Isengard
-Smeagol wouldn't hurt *** flies
+They take *** hobbits to Isengard
+Smeagol hurts *** flies
