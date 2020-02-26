@@ -13,8 +13,8 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
-from pytorch_transformers import RobertaModel, RobertaTokenizer
-from pytorch_transformers import RobertaForSequenceClassification, RobertaConfig
+from transformers import RobertaModel, RobertaTokenizer
+from transformers import RobertaForSequenceClassification, RobertaConfig
 
 tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
 CUDA = torch.cuda.is_available()
@@ -163,6 +163,7 @@ def load_data(pair_path, label_path):
     y = pd.DataFrame(labels)
     dataset = pd.concat([X, y], axis=1, sort=False)
     dataset.columns = ['num', 'label']
+    print(dataset)
 
     label_to_ix = label_dict(dataset)
 
@@ -240,7 +241,7 @@ def parse_all_args():
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-data",type=str,  help = "Path to input data file", default = "./data/en_syn_pair_words.txt")
+    parser.add_argument("-data",type=str,  help = "Path to input data file", default = "./data/en_syn_sentences.txt")
     parser.add_argument("-lr",type=float,\
             help="The learning rate (float) [default: 0.01]",default=0.01)
     parser.add_argument("-epochs",type=int,\

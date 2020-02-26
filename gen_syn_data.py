@@ -19,9 +19,8 @@ def main():
     text = to_text(pairs, args.lang)
     text, labels = ungram_split(text, labels, args.samples, args.lang)
 
-    output_pairs(args.dir + args.lang + "_syn_pair_words.txt", text, args.lang)
+    output_pairs(args.dir + args.lang + "_syn_sentences.txt", text, args.lang)
     output_indvs(args.dir + args.lang + "_syn_labels.txt", labels)
-
 
 def ungram_split(pairs, labels, samples, lang):
     """
