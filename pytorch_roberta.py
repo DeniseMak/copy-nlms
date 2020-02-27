@@ -25,11 +25,11 @@ CUDA = torch.cuda.is_available()
 if CUDA:
     print('Cuda is availible')
 
-class Pairs(Dataset):
-    def __init__(self, dataframe):
-        self.len = len(dataframe)
-        self.data = dataframe
-
+class Data(Dataset):
+    def __init__(self, path):
+        self.data = pd.read_csv(path)
+        self.len = len(self.data)
+        
     def __getitem__(self, index):
         sentence = self.data.sent[index]
         label = self.data.label[index]
@@ -48,10 +48,6 @@ def main():
     train_set, train_tmp = load_data(args.train, args.mb)
     test_set, test_tmp = load_data(args.test, args.mb)
 
-    print("Finished loading data")
-    
-    
-    print("Beginning training")
     model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, model)
     train_preds.to_csv(args.data.replace(".txt", "_train_preds.csv"))
     test_preds.to_csv(args.data.replace(".txt", "_test_preds.csv"))
@@ -150,9 +146,11 @@ def validation(model, data):
     for x, y in data:
 
         x = x.squeeze(1)
+
         if CUDA:
-            sent = sent.cuda()
-            label = label.cuda()
+            x = x.cuda()
+            y = y.cuda()
+
         output = model(x)
         _, predicted = torch.max(output[0].detach(), 1)
         predictions.append(predicted)
@@ -176,12 +174,7 @@ def load_data(path, batch_size):
     """
     Load data for model
     """
-
-    df = pd.read_csv(path)
-    encodings = torch.Tensor()
-
-    
-    dataset = Pairs(df)
+    dataset = Data(path)
 
     params = {'batch_size': batch_size,
             'shuffle': True,
@@ -193,8 +186,6 @@ def load_data(path, batch_size):
     return data_loader, dataset
 
 def prepare_features(seq, max_seq_length=22, zero_pad=True, include_CLS_token=True, include_SEP_token=True):
-    # print(seqs)
-    # input_ids = torch.tensor([tokenizer.encode(seq, add_special_tokens=True) for seq in seqs])
     # Tokenzine Input
     tokens_a = tokenizer.tokenize(str(seq))
 
@@ -213,14 +204,13 @@ def prepare_features(seq, max_seq_length=22, zero_pad=True, include_CLS_token=Tr
         tokens.append(tokenizer.sep_token)
 
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
-    # Input Mask
-    input_mask = [1] * len(input_ids)
+
     # Zero-pad sequence lenght
     if zero_pad:
         while len(input_ids) < max_seq_length:
             input_ids.append(0)
-            input_mask.append(0)
-    return torch.tensor(input_ids).unsqueeze(0)#, input_mask
+
+    return torch.tensor(input_ids).unsqueeze(0)
 
 def get_class(num, model, tokenizer):
     """
