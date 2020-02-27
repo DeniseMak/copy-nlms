@@ -15,7 +15,9 @@ from torch.utils.data import Dataset, DataLoader
 
 from transformers import RobertaModel, RobertaTokenizer
 from transformers import RobertaForSequenceClassification, RobertaConfig
+from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
 
+#NOTE: Do we actually need to use different tokenizers for each model?
 tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
 CUDA = torch.cuda.is_available()
 if CUDA:
@@ -46,15 +48,17 @@ def main():
 
     print("Finished loading data")
     config = RobertaConfig.from_pretrained('roberta-base')
+    if args.model == 'xlm':
+        config = XLMConfig.from_pretrained('xlm-mlm-xnli15-1024')
     config.num_labels = len(list(label_to_ix.values()))
     
     print("Beginning training")
-    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, config)
+    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, config, args.model)
     train_preds.to_csv(args.data.replace(".txt", "_train_preds.csv"))
     test_preds.to_csv(args.data.replace(".txt", "_test_preds.csv"))
     get_class('two hundred hundred', model, label_to_ix)
     
-def train(lr, train, test, epochs, verbosity, config):
+def train(lr, train, test, epochs, verbosity, config, model_name):
     """
     Train a model using the specified parameters
 
@@ -64,7 +68,11 @@ def train(lr, train, test, epochs, verbosity, config):
     :param verbosity: How often to calculate and print test accuracy
     :return model: trained model
     """
-    model = RobertaForSequenceClassification(config)
+    model = None
+    if model_name == 'roberta':
+        model = RobertaForSequenceClassification(config)
+    if model_name == 'xlm':
+        model = XLMForSequenceClassification(config)
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
@@ -154,29 +162,12 @@ def load_data(path):
     """
     Load data for model
     """
-    # data = read_file(path)
-    # pairs = list()
 
-    # for row in data:
-    #     pairs.append(row.split(',')[1:])
-
-
-    # dataset = pd.DataFrame(pairs)  
-    
-    # dataset.columns = ['num', 'label']
-    # dataset['num'] = dataset['num'].astype('str')
-    # print(dataset['num'])
-    # print(type(dataset['num']))
     dataset = pd.read_csv(path)
 
     label_to_ix = label_dict(dataset)
 
-    # print("FULL Dataset: {}".format(dataset.shape))
-    # print("TRAIN Dataset: {}".format(train_dataset.shape))
-    # print("TEST Dataset: {}".format(test_dataset.shape))
-
     dataset = Pairs(dataset)
-    # testing_set = Pairs(test_dataset)
 
     params = {'batch_size': 1,
             'shuffle': True,
@@ -184,14 +175,11 @@ def load_data(path):
             'num_workers': 8}
 
     data_loader = DataLoader(dataset, **params)
-    # testing_loader = DataLoader(testing_set, **params)
 
     return data_loader, label_to_ix, dataset
 
 def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_token=True, include_SEP_token=True):
     # Tokenzine Input
-    # NOTE: WHY IS SEQ_1 NAN?
-    # print(str(seq_1))
     tokens_a = tokenizer.tokenize(str(seq_1))
 
     # Truncate
@@ -245,6 +233,8 @@ def parse_all_args():
     parser.add_argument("-train",type=str,  help = "Path to input data file", default = "./data/en_syn_sentences_train.txt")
     parser.add_argument('-test', help = 'Path to test data file', \
         type=str, default="./data/en_syn_sentences_train.txt")
+    parser.add_argument("-model",type=str,  help = "Model type to use", default = "xlm")
+
     parser.add_argument("-lr",type=float,\
             help="The learning rate (float) [default: 0.01]",default=0.01)
     parser.add_argument("-epochs",type=int,\
