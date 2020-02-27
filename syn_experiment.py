@@ -32,9 +32,8 @@ class SynDataset(Dataset):
     """
     A wrapper for our data so that it is compatible with Pytorch.
     """
-    def __init__(self, path):
-        self.len = len(dataframe)
-        self.data = dataframe
+    def __init__(self, df):
+        self.data = df
 
     def __getitem__(self, index):
         utterance = self.data.sent[index]
@@ -44,22 +43,30 @@ class SynDataset(Dataset):
         return X, Y
 
     def __len__(self):
-        return self.len
+        return len(self.data)
 
 def main():
     # Parse arguments and get data
     args = parse_all_args()
-    train_set, test_set, label_to_ix, = load_data(args.data, args.labels)
+
+    # Load in data with pandas
+    all_data = pd.read_csv(args.data).drop_duplicates()
+    train_data = all_data.sample(frac=args.percent_train,random_state=200).reset_index(drop=True)
+    test_data = all_data.drop(train_data.index).reset_index(drop=True)
+
+    # Format to use with pytorch
+    train_loader = DataLoader(SynDataset(train_data))
+    test_loader = DataLoader(SynDataset(test_data))
 
     # Train and evaluate model on training/testing sets
-    model, train_predictions, test_predictions = train(args.lr, train_set, test_set, args.epochs, args.v)
+    model, train_predictions, test_predictions = train(args.lr, train_loader, test_loader, args.epochs, args.v)
     
-    # Output testing and training predictions
-    train_predictions.to_csv(args.data.replace(".txt", "_train_preds.csv"))
-    test_predictions.to_csv(args.data.replace(".txt", "_test_preds.csv"))
+    # # Output testing and training predictions
+    # train_predictions.to_csv(args.data.replace(".txt", "_train_preds.csv"))
+    # test_predictions.to_csv(args.data.replace(".txt", "_test_preds.csv"))
 
-    # Classify a single example
-    classify_example('two hundred hundred', model, label_to_ix)
+    # # Classify a single example
+    # classify_example('two hundred hundred', model, label_to_ix)
     
 def train(lr, train_data, test_data, epochs, verbosity):
     """
@@ -158,63 +165,6 @@ def label_dict(dataset):
                 label_to_ix[word] = len(label_to_ix)
     return label_to_ix
 
-# def load_data(sentences_path, label_path):
-#     """
-#     :param pair_path: (str) Path to pairs file
-#     :param label_path: (int) Path to labels file
-#     :return training_loader (DataLoader): Pytorch dataloader for training data
-#     :return testing_loader (DataLoader): Pytorch dataloader for testing data
-#     :return label_to_ix (dict): Assign an index to each label val
-#     """
-
-#     # Read in sentences
-#     sents = []
-#     with open(sentences_path, "r") as sentences:
-#         for sentence in sentences:
-#             sents.append(sentence.strip())
-#     X = pd.DataFrame(sents)
-
-#     # Read in labels
-#     labs = []
-#     with open(label_path, "r") as labels:
-#         for label in labels:
-#             labs.append(label.strip())
-#     Y = pd.DataFrame(labs)
-
-#     # Merge into one pandas table
-#     dataset = pd.concat([X, Y], axis=1, sort=False)
-#     dataset.columns = ['sent', 'label']
-
-#     # Assign an index to each possible label
-#     label_to_ix = label_dict(dataset)
-
-#     # Split the dataset based on train/test
-#     train_size = 0.8
-#     train_dataset = dataset.sample(
-#         frac=train_size, random_state=200).reset_index(drop=True)
-#     test_dataset = dataset.drop(train_dataset.index).reset_index(drop=True)
-#     print("FULL Dataset: {}".format(dataset.shape))
-#     print("TRAIN Dataset: {}".format(train_dataset.shape))
-#     print("TEST Dataset: {}".format(test_dataset.shape))
-
-#     # Write train/test to CSV files
-#     train_dataset.to_csv(sentences_path.replace(".txt", "_train.txt"))
-#     test_dataset.to_csv(sentences_path.replace(".txt", "_test.txt"))
-
-#     # Parameters for pytorch data loader
-#     params = {'batch_size': 1,
-#             'shuffle': True,
-#             'drop_last': False,
-#             'num_workers': 8}
-
-#     # Make pytorch dataloaders, have to wrap train/test with pytorch dataset class
-#     train_dataset = Dataset(train_dataset)
-#     test_dataset = Dataset(test_dataset)
-#     training_loader = DataLoader(train_dataset, **params)
-#     testing_loader = DataLoader(test_dataset, **params)
-
-#     return training_loader, testing_loader, label_to_ix
-
 def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_token=True, include_SEP_token=True):
     """
     Prepare sentences for being passed into model of choice (BERT, etc.)
@@ -275,13 +225,12 @@ def parse_all_args():
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-data",type=str,  help = "Path to input data file", default = "./data/en_syn_sentences.txt")
+    parser.add_argument("-data",type=str,  help = "Path to input data file", default = "./data/en_syn_data.csv")
+    parser.add_argument("-percent_train", type=float, help="Percent of data to use as training (float)", default = .80)
     parser.add_argument("-lr",type=float,\
             help="The learning rate (float) [default: 0.01]",default=0.01)
     parser.add_argument("-epochs",type=int,\
             help="The number of training epochs (int) [default: 100]",default=100)
-    parser.add_argument('-labels', help = 'Path to input label file', \
-            type=str, default="./data/en_syn_labels.txt")
     parser.add_argument("-v",type=int,\
             help="How often to calculate and print accuracy [default: 1]",default=1)
 
