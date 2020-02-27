@@ -15,9 +15,7 @@ def main():
     text, labels = ungram_split(text, labels, args.samples, args.lang) # Make ungrammatical
 
     # Output
-    train_path = args.dir + args.lang + "_syn_train.csv"
-    test_path = args.dir + args.lang + "_syn_test.csv"
-    output_data(train_path, test_path, text, labels, args.lang) 
+    output_data(args.dir + args.lang + "_syn_data.csv", text, labels, args.lang) 
 
 def ungram_split(pairs, labels, samples, lang):
     """
@@ -135,7 +133,7 @@ def to_text(pairs, lang):
 
     return text
 
-def output_data(train_path, test_path, data, labels, lang):
+def output_data(path, data, labels, lang):
     """
     Format number pairs write to a specified file
     :param path: (str) Filepath to write to
@@ -147,9 +145,8 @@ def output_data(train_path, test_path, data, labels, lang):
         sentences = f.readlines()
 
     # Open output file
-    with open(train_path, "w+", encoding="utf-8") as train, open(test_path, "w+", encoding="utf-8") as test:
-        train.write("sent,label\n")
-        test.write("sent,label\n")
+    with open(path, "w+", encoding="utf-8") as f:
+        f.write("sent,label\n")
         for i, item in enumerate(data):
             string = random.choice(sentences).strip()
             if len(item) == 1:
@@ -157,9 +154,9 @@ def output_data(train_path, test_path, data, labels, lang):
             else:
                 string = string.replace("***", item[0] + " " + item[1])
             if lang == 'ja':
-                train.write(string.replace(' ', '') + ',' + str(labels[i]) + "\n")
+                f.write(string.replace(' ', '') + ',' + str(labels[i]) + "\n")
             else:
-                train.write(string + "," + str(labels[i]) + '\n')
+                f.write(string + "," + str(labels[i]) + '\n')
 
 def parse_all_args():
     """
@@ -179,8 +176,6 @@ def parse_all_args():
             help="Language of data to be generated [default=en]", default="en")
     parser.add_argument("-load",type=str,\
             help="Location of  previous set of integer pairs to create data")
-    parser.add_argument("-per_train",type=str,\
-            help="Percent of data that will go to training")
 
     args = parser.parse_args()
 
