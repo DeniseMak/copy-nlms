@@ -1,3 +1,8 @@
+# TODO: Make batch sizes bigger than 1
+# TODO: Check that output makes sense
+# TODO: Make generic for all model
+# TODO: Check that it works for each language
+
 # Misc
 import pandas as pd
 import argparse
@@ -54,7 +59,7 @@ def main():
     test_predictions.to_csv(args.data.replace(".txt", "_test_preds.csv"))
 
     # Classify a single example
-    classify('two hundred hundred', model, label_to_ix)
+    classify_example('two hundred hundred', model, label_to_ix)
     
 def train(lr, train_data, test_data, epochs, verbosity):
     """
@@ -246,7 +251,7 @@ def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_toke
 
     return torch.tensor(input_ids).unsqueeze(0), input_mask
 
-def classify(x, model, label_to_ix):
+def classify_example(x, model, label_to_ix):
     """
     Get class of an example
 
