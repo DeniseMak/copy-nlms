@@ -19,8 +19,9 @@ from transformers import RobertaForSequenceClassification, RobertaConfig
 from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
 from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
 
-
+#NOTE: DONT HARD CODE SEQ LEN!!!!!!!!
 tokenizer = None
+MAX_LEN = None
 CUDA = torch.cuda.is_available()
 if CUDA:
     print('Cuda is availible')
@@ -41,9 +42,12 @@ class Data(Dataset):
         return self.len
 
 def main():
+    global MAX_LEN
     args = parse_all_args()
     
     model = get_model(args.model)
+
+    MAX_LEN = get_seq_len(args.train)
 
     train_set, train_tmp = load_data(args.train, args.mb)
     test_set, test_tmp = load_data(args.test, args.mb)
@@ -53,6 +57,21 @@ def main():
     test_preds.to_csv(args.data.replace(".txt", "_test_preds.csv"))
     get_class('two hundred hundred', model, tokenizer)
     
+def get_seq_len(path):
+    """
+    Get max sequence length for padding later
+    """
+
+    df = pd.read_csv(path)
+    max_len = 0
+    for row in df['sent']:
+        toks = tokenizer.tokenize(row)
+        curr_len = len(tokenizer.convert_tokens_to_ids(toks))
+        if curr_len > max_len:
+            max_len = curr_len
+    # Account for additional tokens
+    return max_len + 2
+
 def get_model(model_name):
     """
     Load the model and tokenizer function specified by the user
@@ -185,30 +204,30 @@ def load_data(path, batch_size):
 
     return data_loader, dataset
 
-def prepare_features(seq, max_seq_length=22, zero_pad=True, include_CLS_token=True, include_SEP_token=True):
+def prepare_features(seq):
+    global MAX_LEN
+    
     # Tokenzine Input
-    tokens_a = tokenizer.tokenize(str(seq))
+    tokens_a = tokenizer.tokenize(seq)
 
     # Truncate
-    if len(tokens_a) > max_seq_length - 2:
-        tokens_a = tokens_a[0:(max_seq_length - 2)]
+    if len(tokens_a) > MAX_LEN - 2:
+        tokens_a = tokens_a[0:(MAX_LEN - 2)]
     # Initialize Tokens
     tokens = []
-    if include_CLS_token:
-        tokens.append(tokenizer.cls_token)
+
+    tokens.append(tokenizer.cls_token)
     # Add Tokens and separators
     for token in tokens_a:
         tokens.append(token)
 
-    if include_SEP_token:
-        tokens.append(tokenizer.sep_token)
+    tokens.append(tokenizer.sep_token)
 
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
 
-    # Zero-pad sequence lenght
-    if zero_pad:
-        while len(input_ids) < max_seq_length:
-            input_ids.append(0)
+    # Zero-pad sequence length
+    while len(input_ids) < MAX_LEN:
+        input_ids.append(0)
 
     return torch.tensor(input_ids).unsqueeze(0)
 
