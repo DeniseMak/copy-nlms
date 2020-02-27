@@ -139,31 +139,28 @@ def label_dict(dataset):
                 label_to_ix[word] = len(label_to_ix)
     return label_to_ix
 
-def read_file(path):
-    """
-    Get the lines of a specified file
-    """
-    f = open(path, "r")
-    data = f.readlines()
-    f.close()
-    return data
-
 def load_data(pair_path, label_path):
     """
     Load data for model
     """
-    examples = read_file(pair_path)
-    labels = read_file(label_path)
+    
+    # Read in sentences
+    sents = []
+    with open(sentences_path, "r") as sentences:
+        for sentence in sentences:
+            sents.append(sentence.strip())
+    X = pd.DataFrame(sents)
 
-    for i in range(0, len(examples)):
-        examples[i] = examples[i].strip()#.split(", ")
-        labels[i] = labels[i].strip()
+    # Read in labels
+    labs = []
+    with open(label_path, "r") as labels:
+        for label in labels:
+            labs.append(label.strip())
+    Y = pd.DataFrame(labs)
 
-    X = pd.DataFrame(examples)
-    y = pd.DataFrame(labels)
-    dataset = pd.concat([X, y], axis=1, sort=False)
-    dataset.columns = ['num', 'label']
-    print(dataset)
+    # Merge into one table
+    dataset = pd.concat([X, Y], axis=1, sort=False)
+    dataset.columns = ['sent', 'label']
 
     label_to_ix = label_dict(dataset)
 

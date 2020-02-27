@@ -1,3 +1,4 @@
+# Misc
 import pandas as pd
 import argparse
 import numpy as np
@@ -6,21 +7,25 @@ import re
 from tqdm import tqdm_notebook
 from uuid import uuid4
 
+# Torch/Transformers
 import torch
 import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
+from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
 
-from transformers import BertModel, BertTokenizer
-
+# Globals
 tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
 CUDA = torch.cuda.is_available()
 if CUDA:
     print('Cuda is availible')
 
-class Pairs(Dataset):
+class Pairs(Dataset): # maybe rename later???
+    """
+    A wrapper for our data so that it is compatible with Pytorch
+    """
     def __init__(self, dataframe):
         self.len = len(dataframe)
         self.data = dataframe
@@ -29,29 +34,25 @@ class Pairs(Dataset):
         utterance = self.data.num[index]
         label = self.data.label[index]
         X, _ = prepare_features(utterance)
-        y = torch.tensor(int(self.data.label[index]))
-        return X, y
+        Y = torch.tensor(int(self.data.label[index]))
+        return X, Y
 
     def __len__(self):
         return self.len
 
 def main():
     args = parse_all_args()
-    train_set, test_set, label_to_ix, train_tmp, test_tmp = load_data(args.data, args.labels)
-    train_tmp.to_csv(args.data.replace(".txt", "_train.txt"))
-    test_tmp.to_csv(args.data.replace(".txt", "_test.txt"))
-
-    # print("Finished loading data")
-    # config = RobertaConfig.from_pretrained('roberta-base')
-    # config.num_labels = len(list(label_to_ix.values()))
+    train_set, test_set, label_to_ix, = load_data(args.data, args.labels)
     
-    # print("Beginning training")
-    # model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, config)
+    print("Finished loading data")    
+    print("Beginning training")
+
+    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v)
     # train_preds.to_csv(args.data.replace(".txt", "_train_preds.csv"))
     # test_preds.to_csv(args.data.replace(".txt", "_test_preds.csv"))
     # get_class('two hundred hundred', model, label_to_ix)
     
-def train(lr, train, test, epochs, verbosity, config):
+def train(lr, train, test, epochs, verbosity):
     """
     Train a model using the specified parameters
 
@@ -61,7 +62,7 @@ def train(lr, train, test, epochs, verbosity, config):
     :param verbosity: How often to calculate and print test accuracy
     :return model: trained model
     """
-    model = RobertaForSequenceClassification(config)
+    model = BertForSequenceClassification.from_pretrained("bert-base-multilingual-cased") # load model with config multilingual cased
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
@@ -145,8 +146,6 @@ def load_data(sentences_path, label_path):
     :return training_loader:
     :return testing_loader:
     :return label_to_ix:
-    :return train_dataset:
-    :return test_dataset:
     """
 
     # Read in sentences
@@ -163,7 +162,7 @@ def load_data(sentences_path, label_path):
             labs.append(label.strip())
     Y = pd.DataFrame(labs)
 
-    # Merge into one table
+    # Merge into one pandas table
     dataset = pd.concat([X, Y], axis=1, sort=False)
     dataset.columns = ['sent', 'label']
 
@@ -175,23 +174,25 @@ def load_data(sentences_path, label_path):
     train_dataset = dataset.sample(
         frac=train_size, random_state=200).reset_index(drop=True)
     test_dataset = dataset.drop(train_dataset.index).reset_index(drop=True)
-
     print("FULL Dataset: {}".format(dataset.shape))
     print("TRAIN Dataset: {}".format(train_dataset.shape))
     print("TEST Dataset: {}".format(test_dataset.shape))
 
-    training_set = Pairs(train_dataset)
-    testing_set = Pairs(test_dataset)
+    # Write train/test to CSV files
+    train_dataset.to_csv(sentences_path.replace(".txt", "_train.txt"))
+    test_dataset.to_csv(sentences_path.replace(".txt", "_test.txt"))
 
+    # Parameters for loading data into pytorch
     params = {'batch_size': 1,
             'shuffle': True,
             'drop_last': False,
             'num_workers': 8}
 
-    training_loader = DataLoader(training_set, **params)
-    testing_loader = DataLoader(testing_set, **params)
+    # Make a pytorch dataloaders, have to wrap train/test
+    training_loader = DataLoader(Pairs(train_dataset), **params)
+    testing_loader = DataLoader(Pairs(test_dataset), **params)
 
-    return training_loader, testing_loader, label_to_ix, train_dataset, test_dataset
+    return training_loader, testing_loader, label_to_ix
 
 def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_token=True, include_SEP_token=True):
     # Tokenzine Input
