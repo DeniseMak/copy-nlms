@@ -2,6 +2,7 @@
 # TODO: Check that output makes sense
 # TODO: Make generic for all model
 # TODO: Check that it works for each language
+# TODO: Do we need the config file?
 
 # Misc
 import pandas as pd
