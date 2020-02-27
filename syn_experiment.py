@@ -31,9 +31,8 @@ if CUDA:
 class SynDataset(Dataset):
     """
     A wrapper for our data so that it is compatible with Pytorch.
-    Takes in a pd dataframe and turns it into Pytorch compatible Dataset object.
     """
-    def __init__(self, dataframe):
+    def __init__(self, path):
         self.len = len(dataframe)
         self.data = dataframe
 
@@ -159,62 +158,62 @@ def label_dict(dataset):
                 label_to_ix[word] = len(label_to_ix)
     return label_to_ix
 
-def load_data(sentences_path, label_path):
-    """
-    :param pair_path: (str) Path to pairs file
-    :param label_path: (int) Path to labels file
-    :return training_loader (DataLoader): Pytorch dataloader for training data
-    :return testing_loader (DataLoader): Pytorch dataloader for testing data
-    :return label_to_ix (dict): Assign an index to each label val
-    """
+# def load_data(sentences_path, label_path):
+#     """
+#     :param pair_path: (str) Path to pairs file
+#     :param label_path: (int) Path to labels file
+#     :return training_loader (DataLoader): Pytorch dataloader for training data
+#     :return testing_loader (DataLoader): Pytorch dataloader for testing data
+#     :return label_to_ix (dict): Assign an index to each label val
+#     """
 
-    # Read in sentences
-    sents = []
-    with open(sentences_path, "r") as sentences:
-        for sentence in sentences:
-            sents.append(sentence.strip())
-    X = pd.DataFrame(sents)
+#     # Read in sentences
+#     sents = []
+#     with open(sentences_path, "r") as sentences:
+#         for sentence in sentences:
+#             sents.append(sentence.strip())
+#     X = pd.DataFrame(sents)
 
-    # Read in labels
-    labs = []
-    with open(label_path, "r") as labels:
-        for label in labels:
-            labs.append(label.strip())
-    Y = pd.DataFrame(labs)
+#     # Read in labels
+#     labs = []
+#     with open(label_path, "r") as labels:
+#         for label in labels:
+#             labs.append(label.strip())
+#     Y = pd.DataFrame(labs)
 
-    # Merge into one pandas table
-    dataset = pd.concat([X, Y], axis=1, sort=False)
-    dataset.columns = ['sent', 'label']
+#     # Merge into one pandas table
+#     dataset = pd.concat([X, Y], axis=1, sort=False)
+#     dataset.columns = ['sent', 'label']
 
-    # Assign an index to each possible label
-    label_to_ix = label_dict(dataset)
+#     # Assign an index to each possible label
+#     label_to_ix = label_dict(dataset)
 
-    # Split the dataset based on train/test
-    train_size = 0.8
-    train_dataset = dataset.sample(
-        frac=train_size, random_state=200).reset_index(drop=True)
-    test_dataset = dataset.drop(train_dataset.index).reset_index(drop=True)
-    print("FULL Dataset: {}".format(dataset.shape))
-    print("TRAIN Dataset: {}".format(train_dataset.shape))
-    print("TEST Dataset: {}".format(test_dataset.shape))
+#     # Split the dataset based on train/test
+#     train_size = 0.8
+#     train_dataset = dataset.sample(
+#         frac=train_size, random_state=200).reset_index(drop=True)
+#     test_dataset = dataset.drop(train_dataset.index).reset_index(drop=True)
+#     print("FULL Dataset: {}".format(dataset.shape))
+#     print("TRAIN Dataset: {}".format(train_dataset.shape))
+#     print("TEST Dataset: {}".format(test_dataset.shape))
 
-    # Write train/test to CSV files
-    train_dataset.to_csv(sentences_path.replace(".txt", "_train.txt"))
-    test_dataset.to_csv(sentences_path.replace(".txt", "_test.txt"))
+#     # Write train/test to CSV files
+#     train_dataset.to_csv(sentences_path.replace(".txt", "_train.txt"))
+#     test_dataset.to_csv(sentences_path.replace(".txt", "_test.txt"))
 
-    # Parameters for pytorch data loader
-    params = {'batch_size': 1,
-            'shuffle': True,
-            'drop_last': False,
-            'num_workers': 8}
+#     # Parameters for pytorch data loader
+#     params = {'batch_size': 1,
+#             'shuffle': True,
+#             'drop_last': False,
+#             'num_workers': 8}
 
-    # Make pytorch dataloaders, have to wrap train/test with pytorch dataset class
-    train_dataset = SynDataset(train_dataset)
-    test_dataset = SynDataset(test_dataset)
-    training_loader = DataLoader(train_dataset, **params)
-    testing_loader = DataLoader(test_dataset, **params)
+#     # Make pytorch dataloaders, have to wrap train/test with pytorch dataset class
+#     train_dataset = Dataset(train_dataset)
+#     test_dataset = Dataset(test_dataset)
+#     training_loader = DataLoader(train_dataset, **params)
+#     testing_loader = DataLoader(test_dataset, **params)
 
-    return training_loader, testing_loader, label_to_ix
+#     return training_loader, testing_loader, label_to_ix
 
 def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_token=True, include_SEP_token=True):
     """

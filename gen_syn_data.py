@@ -14,13 +14,11 @@ def main():
         pairs = load_pairs(args.load)
     else:
         pairs,labels = gen_pairs(args.range, args.samples)
-        output_pairs(args.dir + "syn_int_pairs.txt", pairs, args.lang)
 
     text = to_text(pairs, args.lang)
     text, labels = ungram_split(text, labels, args.samples, args.lang)
 
-    output_pairs(args.dir + args.lang + "_syn_sentences.txt", text, args.lang)
-    output_indvs(args.dir + args.lang + "_syn_labels.txt", labels)
+    output_data(args.dir + args.lang + "_syn_data.csv", text, labels, args.lang)
 
 def ungram_split(pairs, labels, samples, lang):
     """
@@ -160,48 +158,31 @@ def to_text(pairs, lang):
 
     return text
 
-def output_pairs(path, data, lang):
+def output_data(path, data, labels, lang):
     """
     Format number pairs write to a specified file
     :param path: (str) Filepath to write to
     :param data: (list) Data to format and write
     """
+
+    # Get template sentences
     with open('./templates/' + lang + '_templates.txt', 'r', encoding="utf-8") as f:
         sentences = f.readlines()
 
+    # Open output file
     with open(path, "w+", encoding="utf-8") as f:
-        for item in data:
-            num = ""
-            for element in item:
-                if element != -1:
-                    num += str(element) + " "
-
-            if type(item) == list:
-                if type(item[0]) == str:
-                    string = re.sub(' +', ' ', random.choice(sentences).replace('***', num)).strip() 
-                    if lang == 'ja':
-                        f.write(string.replace(' ', '') + '\n')
-                    else:
-                        f.write(string + '\n')
-                else:
-                    f.write(num + '\n')
+        f.write("sent,label\n")
+        for i, item in enumerate(data):
+            string = random.choice(sentences).strip()
+            if len(item) == 1:
+                string = string.replace("***", item[0])
             else:
-                f.write(num + '\n')
+                string = string.replace("***", item[0] + " " + item[1])
+            if lang == 'ja':
+                f.write(string.replace(' ', '') + ',' + str(labels[i]) + "\n")
+            else:
+                f.write(string + "," + str(labels[i]) + '\n')
 
-def output_indvs(path, data):
-    """
-    Format data and write it to a specified file
-    :param path: (str) Filepath to write to
-    :param data: (list) Data to format and write
-    """
-    string = ""
-    for item in data:
-
-        line = str(item)
-        string += line + "\n"
-
-    with open(path, "w+") as f:
-        f.write(string)
 
 def parse_all_args():
     """
