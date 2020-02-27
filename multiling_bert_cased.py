@@ -22,9 +22,10 @@ CUDA = torch.cuda.is_available()
 if CUDA:
     print('Cuda is availible')
 
-class Pairs(Dataset): # maybe rename later???
+class SynDataset(Dataset):
     """
-    A wrapper for our data so that it is compatible with Pytorch
+    A wrapper for our data so that it is compatible with Pytorch.
+    Takes in a pd dataframe and turns it into Pytorch compatible Dataset object.
     """
     def __init__(self, dataframe):
         self.len = len(dataframe)
@@ -43,16 +44,12 @@ class Pairs(Dataset): # maybe rename later???
 def main():
     args = parse_all_args()
     train_set, test_set, label_to_ix, = load_data(args.data, args.labels)
-    
-    print("Finished loading data")    
-    print("Beginning training")
-
     model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v)
     # train_preds.to_csv(args.data.replace(".txt", "_train_preds.csv"))
     # test_preds.to_csv(args.data.replace(".txt", "_test_preds.csv"))
     # get_class('two hundred hundred', model, label_to_ix)
     
-def train(lr, train, test, epochs, verbosity):
+def train(lr, train_data, test_data, epochs, verbosity):
     """
     Train a model using the specified parameters
 
@@ -74,34 +71,44 @@ def train(lr, train, test, epochs, verbosity):
         device = torch.device("cuda")
         model = model.cuda()
 
-    model = model.train()
+    # Set model into train mode
+    model = model.train() 
 
+    # Training loop
     for epoch in range(0, epochs):
         print("Epoch: " + str(epoch))
-        for i, (sent, label) in enumerate(train):
-            optimizer.zero_grad()
+        for i, data in enumerate(train_data):
+            optimizer.zero_grad() # Reset gradients for each example
             sent = sent.squeeze(0)
             if CUDA:
                 sent = sent.cuda()
                 label = label.cuda()
+            
+            # Sent the example forward pass and get result
             output = model.forward(sent)[0]
-            _, predicted = torch.max(output, 1)
 
+            # Get loss and make backward pass
             loss = loss_function(output, label)
             loss.backward()
+            
+            # Adjust the weights
             optimizer.step()
+
+            # Print an incremental test accuracy result
             if i % verbosity == 0:
-                test_acc = validation(model, test)
+                test_acc = classify(model, test_data)
                 print('({}.{}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc[0]))
-        train_acc, train_preds = validation(model, train)
-        test_acc, test_preds = validation(model, test)
+
+        # Get overall train/test accuracy (after training completely done)
+        train_acc, train_preds = classify(model, train)
+        test_acc, test_preds = classify(model, test)
         print('({}.{}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model, pd.DataFrame(train_preds), pd.DataFrame(test_preds)
 
-def validation(model, data):
+def classify(model, data):
     """
-    Calculate accuracy of the model on a set of data
+    Calculate accuracy of the model on classifying a set of data
 
     :param model: Trained model
     :param data: Data set to predict and calculate on
@@ -143,9 +150,9 @@ def load_data(sentences_path, label_path):
     """
     :param pair_path: (str) Path to pairs file
     :param label_path: (int) Path to labels file
-    :return training_loader:
-    :return testing_loader:
-    :return label_to_ix:
+    :return training_loader (DataLoader): Pytorch dataloader for training data
+    :return testing_loader (DataLoader): Pytorch dataloader for testing data
+    :return label_to_ix (dict): Assign an index to each label val
     """
 
     # Read in sentences
@@ -182,15 +189,15 @@ def load_data(sentences_path, label_path):
     train_dataset.to_csv(sentences_path.replace(".txt", "_train.txt"))
     test_dataset.to_csv(sentences_path.replace(".txt", "_test.txt"))
 
-    # Parameters for loading data into pytorch
-    params = {'batch_size': 1,
+    # Parameters for pytorch data loader
+    params = {'batch_size': 4,
             'shuffle': True,
             'drop_last': False,
             'num_workers': 8}
 
-    # Make a pytorch dataloaders, have to wrap train/test
-    training_loader = DataLoader(Pairs(train_dataset), **params)
-    testing_loader = DataLoader(Pairs(test_dataset), **params)
+    # Make pytorch dataloaders, have to wrap train/test with pytorch dataset class
+    training_loader = DataLoader(SynDataset(train_dataset), **params)
+    testing_loader = DataLoader(SynDataset(test_dataset), **params)
 
     return training_loader, testing_loader, label_to_ix
 
