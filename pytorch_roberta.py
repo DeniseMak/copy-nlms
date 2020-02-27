@@ -114,24 +114,22 @@ def train(lr, train, test, epochs, verbosity, model):
 
     for epoch in range(0, epochs):
         print("Epoch: " + str(epoch))
+        i = 0
         for x, y in train:
             optimizer.zero_grad()
             x = x.squeeze(1)
-            if CUDA:
-                x = x.cuda()
-                y = y.cuda()
-            print(x.shape)
-            print(x)
-            output = model(x)
-            print(output[0][0][0])
-            _, predicted = torch.max(output, 1)
 
-            loss = loss_function(output, y)
+            output = model.forward(x)
+
+            _, predicted = torch.max(output[0].detach(), 1)
+
+            loss = loss_function(output[0], y)
             loss.backward()
             optimizer.step()
             if i % verbosity == 0:
                 test_acc = validation(model, test)
                 print('({}.{}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc[0]))
+            i += 1
         train_acc, train_preds = validation(model, train)
         test_acc, test_preds = validation(model, test)
         print('({}.{}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
@@ -149,17 +147,18 @@ def validation(model, data):
     correct = 0
     total = 0
     predictions = list()
-    for sent, label in data:
+    for x, y in data:
 
-        sent = sent.squeeze(0)
+        x = x.squeeze(1)
         if CUDA:
             sent = sent.cuda()
             label = label.cuda()
-        output = model.forward(sent)[0]
-        _, predicted = torch.max(output.data, 1)
-        predictions.append(predicted.item())
+        output = model(x)
+        _, predicted = torch.max(output[0].detach(), 1)
+        predictions.append(predicted)
+        
         total += 1
-        correct += (predicted.cpu() == label.cpu()).sum()
+        correct += (predicted.cpu() == y.cpu()).sum()
     accuracy = correct.numpy() / total
 
     return accuracy, predictions
@@ -180,36 +179,9 @@ def load_data(path, batch_size):
 
     df = pd.read_csv(path)
     encodings = torch.Tensor()
-    # max_tens = 0
-    # Pairs(df)
-    # for i, row in enumerate(df['sent']):
-        
-    #     encodings = torch.cat((encodings, toks), dim=0)
 
-    # print(max_tens)
-        # encodings = torch.stack((encodings, prepare_features(row)))
-
-    
-        # encodings.append()
-        
-    # encodings = torch.tensor([tokenizer.encode(seq, add_special_tokens=True) for seq in df['sent']])
-
-    # dataset = Pairs(dataset)
-
-    # for i, row in enumerate(dataset):
-    #     print(row)
-    # print(dataset)
-    # print(encodings)
-    # print(np.asarray(encodings).shape)
-    # encodings = torch.Tensor(np.array(encodings))
-    # labels = torch.Tensor(np.array(df['label']))
-    # dataset = Dataset(encodings, labels)
     
     dataset = Pairs(df)
-    # for i, (sent, label) in enumerate(dataset):
-    #     # print(sent)
-    #     print(sent.shape)
-    # print(dataset.shape)
 
     params = {'batch_size': batch_size,
             'shuffle': True,
@@ -217,9 +189,6 @@ def load_data(path, batch_size):
             'num_workers': 8}
 
     data_loader = DataLoader(dataset, **params)
-    for i, (sent, label) in enumerate(data_loader):
-        # print(sent)
-        print(sent.shape)
 
     return data_loader, dataset
 
