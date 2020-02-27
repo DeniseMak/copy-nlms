@@ -25,20 +25,20 @@ CUDA = torch.cuda.is_available()
 if CUDA:
     print('Cuda is availible')
 
-# class Pairs(Dataset):
-#     def __init__(self, dataframe):
-#         self.len = len(dataframe)
-#         self.data = dataframe
+class Pairs(Dataset):
+    def __init__(self, dataframe):
+        self.len = len(dataframe)
+        self.data = dataframe
 
-#     def __getitem__(self, index):
-#         utterance = self.data.sent[index]
-#         label = self.data.label[index]
-#         X, _ = prepare_features(utterance)
-#         y = torch.tensor(int(self.data.label[index]))
-#         return X, y
+    def __getitem__(self, index):
+        sentence = self.data.sent[index]
+        label = self.data.label[index]
+        X = prepare_features(sentence)
+        y = torch.tensor(int(self.data.label[index]))
+        return X, y
 
-#     def __len__(self):
-#         return self.len
+    def __len__(self):
+        return self.len
 
 def main():
     args = parse_all_args()
@@ -114,16 +114,19 @@ def train(lr, train, test, epochs, verbosity, model):
 
     for epoch in range(0, epochs):
         print("Epoch: " + str(epoch))
-        for i, (sent, label) in enumerate(train):
+        for x, y in train:
             optimizer.zero_grad()
-            sent = sent.squeeze(0)
+            x = x.squeeze(1)
             if CUDA:
-                sent = sent.cuda()
-                label = label.cuda()
-            output = model.forward(sent)[0]
+                x = x.cuda()
+                y = y.cuda()
+            print(x.shape)
+            print(x)
+            output = model(x)
+            print(output[0][0][0])
             _, predicted = torch.max(output, 1)
 
-            loss = loss_function(output, label)
+            loss = loss_function(output, y)
             loss.backward()
             optimizer.step()
             if i % verbosity == 0:
@@ -176,9 +179,18 @@ def load_data(path, batch_size):
     """
 
     df = pd.read_csv(path)
-    encodings = list()
-    for i, row in enumerate(df['sent']):
-        encodings.append(prepare_features(row))
+    encodings = torch.Tensor()
+    # max_tens = 0
+    # Pairs(df)
+    # for i, row in enumerate(df['sent']):
+        
+    #     encodings = torch.cat((encodings, toks), dim=0)
+
+    # print(max_tens)
+        # encodings = torch.stack((encodings, prepare_features(row)))
+
+    
+        # encodings.append()
         
     # encodings = torch.tensor([tokenizer.encode(seq, add_special_tokens=True) for seq in df['sent']])
 
@@ -187,11 +199,17 @@ def load_data(path, batch_size):
     # for i, row in enumerate(dataset):
     #     print(row)
     # print(dataset)
-    print(encodings)
-    print(np.asarray(encodings).shape)
-    encodings = torch.Tensor(np.array(encodings))
-    labels = torch.Tensor(np.array(df['label']))
-    dataset = Dataset(encodings, labels)
+    # print(encodings)
+    # print(np.asarray(encodings).shape)
+    # encodings = torch.Tensor(np.array(encodings))
+    # labels = torch.Tensor(np.array(df['label']))
+    # dataset = Dataset(encodings, labels)
+    
+    dataset = Pairs(df)
+    # for i, (sent, label) in enumerate(dataset):
+    #     # print(sent)
+    #     print(sent.shape)
+    # print(dataset.shape)
 
     params = {'batch_size': batch_size,
             'shuffle': True,
@@ -199,10 +217,13 @@ def load_data(path, batch_size):
             'num_workers': 8}
 
     data_loader = DataLoader(dataset, **params)
+    for i, (sent, label) in enumerate(data_loader):
+        # print(sent)
+        print(sent.shape)
 
     return data_loader, dataset
 
-def prepare_features(seq, max_seq_length=300, zero_pad=False, include_CLS_token=True, include_SEP_token=True):
+def prepare_features(seq, max_seq_length=22, zero_pad=True, include_CLS_token=True, include_SEP_token=True):
     # print(seqs)
     # input_ids = torch.tensor([tokenizer.encode(seq, add_special_tokens=True) for seq in seqs])
     # Tokenzine Input
@@ -230,7 +251,7 @@ def prepare_features(seq, max_seq_length=300, zero_pad=False, include_CLS_token=
         while len(input_ids) < max_seq_length:
             input_ids.append(0)
             input_mask.append(0)
-    return torch.tensor(input_ids)#, input_mask
+    return torch.tensor(input_ids).unsqueeze(0)#, input_mask
 
 def get_class(num, model, tokenizer):
     """
