@@ -13,6 +13,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
+# from tensorflow import data_unti
 from transformers import RobertaModel, RobertaTokenizer
 from transformers import RobertaForSequenceClassification, RobertaConfig
 from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
@@ -24,29 +25,31 @@ CUDA = torch.cuda.is_available()
 if CUDA:
     print('Cuda is availible')
 
-class Pairs(Dataset):
-    def __init__(self, dataframe):
-        self.len = len(dataframe)
-        self.data = dataframe
+# class Pairs(Dataset):
+#     def __init__(self, dataframe):
+#         self.len = len(dataframe)
+#         self.data = dataframe
 
-    def __getitem__(self, index):
-        utterance = self.data.sent[index]
-        label = self.data.label[index]
-        X, _ = prepare_features(utterance)
-        y = torch.tensor(int(self.data.label[index]))
-        return X, y
+#     def __getitem__(self, index):
+#         utterance = self.data.sent[index]
+#         label = self.data.label[index]
+#         X, _ = prepare_features(utterance)
+#         y = torch.tensor(int(self.data.label[index]))
+#         return X, y
 
-    def __len__(self):
-        return self.len
+#     def __len__(self):
+#         return self.len
 
 def main():
     args = parse_all_args()
     
-    train_set, train_tmp = load_data(args.train)
-    test_set, test_tmp = load_data(args.test)
+    model = get_model(args.model)
+
+    train_set, train_tmp = load_data(args.train, args.mb)
+    test_set, test_tmp = load_data(args.test, args.mb)
 
     print("Finished loading data")
-    model = get_model(args.model)
+    
     
     print("Beginning training")
     model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, model)
@@ -65,16 +68,19 @@ def get_model(model_name):
     # NOTE: Do we need to use config??
     model = None
     if model_name == 'roberta':
+        print('Loading roberta')
         tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
         config = RobertaConfig.from_pretrained('roberta-base')
         model = RobertaForSequenceClassification(config)
 
     elif model_name == 'xlm':
+        print('Loading xlm')
         tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-100-1280')
         config = XLMConfig.from_pretrained('xlm-mlm-100-1280')
         model = XLMForSequenceClassification(config)
 
     elif model_name == 'bert':
+        print('Loading bert')
         tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
         config = BertConfig.from_pretrained('bert-base-multilingual-cased')
         model = BertForSequenceClassification.from_pretrained(config)
@@ -164,15 +170,30 @@ def read_file(path):
     f.close()
     return data
 
-def load_data(path):
+def load_data(path, batch_size):
     """
     Load data for model
     """
 
-    dataset = pd.read_csv(path)
-    dataset = Pairs(dataset)
+    df = pd.read_csv(path)
+    encodings = list()
+    for i, row in enumerate(df['sent']):
+        encodings.append(prepare_features(row))
+        
+    # encodings = torch.tensor([tokenizer.encode(seq, add_special_tokens=True) for seq in df['sent']])
 
-    params = {'batch_size': 1,
+    # dataset = Pairs(dataset)
+
+    # for i, row in enumerate(dataset):
+    #     print(row)
+    # print(dataset)
+    print(encodings)
+    print(np.asarray(encodings).shape)
+    encodings = torch.Tensor(np.array(encodings))
+    labels = torch.Tensor(np.array(df['label']))
+    dataset = Dataset(encodings, labels)
+
+    params = {'batch_size': batch_size,
             'shuffle': True,
             'drop_last': False,
             'num_workers': 8}
@@ -181,9 +202,11 @@ def load_data(path):
 
     return data_loader, dataset
 
-def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_token=True, include_SEP_token=True):
+def prepare_features(seq, max_seq_length=300, zero_pad=False, include_CLS_token=True, include_SEP_token=True):
+    # print(seqs)
+    # input_ids = torch.tensor([tokenizer.encode(seq, add_special_tokens=True) for seq in seqs])
     # Tokenzine Input
-    tokens_a = tokenizer.tokenize(str(seq_1))
+    tokens_a = tokenizer.tokenize(str(seq))
 
     # Truncate
     if len(tokens_a) > max_seq_length - 2:
@@ -207,7 +230,7 @@ def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_toke
         while len(input_ids) < max_seq_length:
             input_ids.append(0)
             input_mask.append(0)
-    return torch.tensor(input_ids).unsqueeze(0), input_mask
+    return torch.tensor(input_ids)#, input_mask
 
 def get_class(num, model, tokenizer):
     """
@@ -235,17 +258,19 @@ def parse_all_args():
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-train",type=str,  help = "Path to input data file", default = "./data/en_syn_sentences_train.txt")
+    parser.add_argument("-train",type=str,  help = "Path to input data file", \
+        default = "./data/en_syn_sentences_train.txt")
     parser.add_argument('-test', help = 'Path to test data file', \
         type=str, default="./data/en_syn_sentences_train.txt")
     parser.add_argument("-model",type=str,  help = "Model type to use", default = "xlm")
-
     parser.add_argument("-lr",type=float,\
             help="The learning rate (float) [default: 0.01]",default=0.01)
     parser.add_argument("-epochs",type=int,\
             help="The number of training epochs (int) [default: 100]",default=100)
     parser.add_argument("-v",type=int,\
             help="How often to calculate and print accuracy [default: 1]",default=1)
+    parser.add_argument("-mb",type=int,\
+            help="Minibatch size [default: 32]",default=32)
 
     return parser.parse_args()
 
