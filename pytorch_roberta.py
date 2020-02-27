@@ -46,26 +46,32 @@ def main():
     test_set, test_tmp = load_data(args.test)
 
     print("Finished loading data")
-    tokenizer, config, model = get_model(args.model)
-    config.num_labels = 2#len(list(label_to_ix.values()))
+    model = get_model(args.model)
     
     print("Beginning training")
-    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, config, model)
+    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, model)
     train_preds.to_csv(args.data.replace(".txt", "_train_preds.csv"))
     test_preds.to_csv(args.data.replace(".txt", "_test_preds.csv"))
     get_class('two hundred hundred', model, tokenizer)
     
 def get_model(model_name):
+    """
+    Load the model and tokenizer function specified by the user
+
+    :param model_name: Name of the model
+    :return model: Pretrained model
+    """
     global tokenizer
-    config, model = None, None
+    # NOTE: Do we need to use config??
+    model = None
     if model_name == 'roberta':
         tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
         config = RobertaConfig.from_pretrained('roberta-base')
         model = RobertaForSequenceClassification(config)
 
     elif model_name == 'xlm':
-        tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-xnli15-1024')
-        config = XLMConfig.from_pretrained('xlm-mlm-xnli15-1024')
+        tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-100-1280')
+        config = XLMConfig.from_pretrained('xlm-mlm-100-1280')
         model = XLMForSequenceClassification(config)
 
     elif model_name == 'bert':
@@ -73,12 +79,11 @@ def get_model(model_name):
         config = BertConfig.from_pretrained('bert-base-multilingual-cased')
         model = BertForSequenceClassification.from_pretrained(config)
 
-    # elif model_name == 'xlm-mlm':
+    config.num_labels = 2
 
+    return model
 
-    return tokenizer, config, model
-
-def train(lr, train, test, epochs, verbosity, config, model):
+def train(lr, train, test, epochs, verbosity, model):
     """
     Train a model using the specified parameters
 
