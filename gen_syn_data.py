@@ -9,16 +9,15 @@ def main():
     args = parse_all_args()
     pairs = list() # Integers in pairs to create ungrammatical numbers
     labels = list()
-    
-    if args.load:
-        pairs = load_pairs(args.load)
-    else:
-        pairs,labels = gen_pairs(args.range, args.samples)
 
-    text = to_text(pairs, args.lang)
-    text, labels = ungram_split(text, labels, args.samples, args.lang)
+    pairs,labels = gen_pairs(args.range, args.samples) # Generate pairs of numbers
+    text = to_text(pairs, args.lang) # Turn numbers into text
+    text, labels = ungram_split(text, labels, args.samples, args.lang) # Make ungrammatical
 
-    output_data(args.dir + args.lang + "_syn_data.csv", text, labels, args.lang)
+    # Output
+    train_path = args.dir + args.lang + "_syn_train.csv"
+    test_path = args.dir + args.lang + "_syn_test.csv"
+    output_data(train_path, test_path, text, labels, args.lang) 
 
 def ungram_split(pairs, labels, samples, lang):
     """
@@ -49,28 +48,6 @@ def ungram_split(pairs, labels, samples, lang):
                 labels[i] = 1
 
     return pairs, labels
-
-def load_pairs(path):
-    """
-    Load random integers from previously generated dataset
-    :param path: (str) Path to integer pair file
-    :return pairs: (list) Data from file as list of integer pairs
-    """
-    with open(path, "r") as f:
-        lines = f.readlines()
-
-    pairs = list()
-    for line in lines:
-        line = line.split(", ")
-        try:
-            pair = [int(x) for x in line]
-            pairs.append(pair)
-        except ValueError:
-            print("ERROR You are attempting to load non-integer pairs from: " + path)
-            sys.exit(-1)
-        
-
-    return pairs
 
 def gen_pairs(r, s):
     """
@@ -158,7 +135,7 @@ def to_text(pairs, lang):
 
     return text
 
-def output_data(path, data, labels, lang):
+def output_data(train_path, test_path, data, labels, lang):
     """
     Format number pairs write to a specified file
     :param path: (str) Filepath to write to
@@ -170,8 +147,9 @@ def output_data(path, data, labels, lang):
         sentences = f.readlines()
 
     # Open output file
-    with open(path, "w+", encoding="utf-8") as f:
-        f.write("sent,label\n")
+    with open(train_path, "w+", encoding="utf-8") as train, open(test_path, "w+", encoding="utf-8") as test:
+        train.write("sent,label\n")
+        test.write("sent,label\n")
         for i, item in enumerate(data):
             string = random.choice(sentences).strip()
             if len(item) == 1:
@@ -179,10 +157,9 @@ def output_data(path, data, labels, lang):
             else:
                 string = string.replace("***", item[0] + " " + item[1])
             if lang == 'ja':
-                f.write(string.replace(' ', '') + ',' + str(labels[i]) + "\n")
+                train.write(string.replace(' ', '') + ',' + str(labels[i]) + "\n")
             else:
-                f.write(string + "," + str(labels[i]) + '\n')
-
+                train.write(string + "," + str(labels[i]) + '\n')
 
 def parse_all_args():
     """
@@ -202,7 +179,9 @@ def parse_all_args():
             help="Language of data to be generated [default=en]", default="en")
     parser.add_argument("-load",type=str,\
             help="Location of  previous set of integer pairs to create data")
-    
+    parser.add_argument("-per_train",type=str,\
+            help="Percent of data that will go to training")
+
     args = parser.parse_args()
 
     if args.dir[-1] != "/":
