@@ -16,9 +16,10 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import RobertaModel, RobertaTokenizer
 from transformers import RobertaForSequenceClassification, RobertaConfig
 from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
+from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
 
-#NOTE: Do we actually need to use different tokenizers for each model?
-tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+
+tokenizer = None
 CUDA = torch.cuda.is_available()
 if CUDA:
     print('Cuda is availible')
@@ -30,8 +31,6 @@ class Pairs(Dataset):
 
     def __getitem__(self, index):
         utterance = self.data.sent[index]
-        # print(utterance)
-        # print(type(utterance))
         label = self.data.label[index]
         X, _ = prepare_features(utterance)
         y = torch.tensor(int(self.data.label[index]))
@@ -43,24 +42,43 @@ class Pairs(Dataset):
 def main():
     args = parse_all_args()
     
-    train_set, label_to_ix, train_tmp = load_data(args.train)
-    test_set, _, test_tmp = load_data(args.test)
+    train_set, train_tmp = load_data(args.train)
+    test_set, test_tmp = load_data(args.test)
 
     print("Finished loading data")
-    config = RobertaConfig.from_pretrained('roberta-base')
-    if args.model == 'xlm':
-        config = XLMConfig.from_pretrained('xlm-mlm-xnli15-1024')
-    config.num_labels = len(list(label_to_ix.values()))
+    tokenizer, config, model = get_model(args.model)
+    config.num_labels = 2#len(list(label_to_ix.values()))
     
     print("Beginning training")
-    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, config, args.model)
+    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, config, model)
     train_preds.to_csv(args.data.replace(".txt", "_train_preds.csv"))
     test_preds.to_csv(args.data.replace(".txt", "_test_preds.csv"))
-    get_class('two hundred hundred', model, label_to_ix)
+    get_class('two hundred hundred', model, tokenizer)
     
+def get_model(model_name):
+    global tokenizer
+    config, model = None, None
+    if model_name == 'roberta':
+        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+        config = RobertaConfig.from_pretrained('roberta-base')
+        model = RobertaForSequenceClassification(config)
 
-    
-def train(lr, train, test, epochs, verbosity, config, model_name):
+    elif model_name == 'xlm':
+        tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-xnli15-1024')
+        config = XLMConfig.from_pretrained('xlm-mlm-xnli15-1024')
+        model = XLMForSequenceClassification(config)
+
+    elif model_name == 'bert':
+        tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+        config = BertConfig.from_pretrained('bert-base-multilingual-cased')
+        model = BertForSequenceClassification.from_pretrained(config)
+
+    # elif model_name == 'xlm-mlm':
+
+
+    return tokenizer, config, model
+
+def train(lr, train, test, epochs, verbosity, config, model):
     """
     Train a model using the specified parameters
 
@@ -70,11 +88,6 @@ def train(lr, train, test, epochs, verbosity, config, model_name):
     :param verbosity: How often to calculate and print test accuracy
     :return model: trained model
     """
-    model = None
-    if model_name == 'roberta':
-        model = RobertaForSequenceClassification(config)
-    if model_name == 'xlm':
-        model = XLMForSequenceClassification(config)
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
@@ -137,20 +150,6 @@ def validation(model, data):
 
     return accuracy, predictions
 
-def label_dict(dataset):
-    """
-    Map labels to indicies in a dictionary
-
-    :param dataset: Data with labels
-    :return label_to_ix: Label to index dictionary
-    """
-    label_to_ix = {}
-    for label in dataset.label:
-        # for word in label.split():
-        if label not in label_to_ix:
-            label_to_ix[label] = len(label_to_ix)
-    return label_to_ix
-
 def read_file(path):
     """
     Get the lines of a specified file
@@ -166,9 +165,6 @@ def load_data(path):
     """
 
     dataset = pd.read_csv(path)
-
-    label_to_ix = label_dict(dataset)
-
     dataset = Pairs(dataset)
 
     params = {'batch_size': 1,
@@ -178,7 +174,7 @@ def load_data(path):
 
     data_loader = DataLoader(dataset, **params)
 
-    return data_loader, label_to_ix, dataset
+    return data_loader, dataset
 
 def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_token=True, include_SEP_token=True):
     # Tokenzine Input
@@ -208,7 +204,7 @@ def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_toke
             input_mask.append(0)
     return torch.tensor(input_ids).unsqueeze(0), input_mask
 
-def get_class(num, model, label_to_ix):
+def get_class(num, model, tokenizer):
     """
     Get class of a number in text form for an already trained model
 
@@ -221,7 +217,9 @@ def get_class(num, model, label_to_ix):
         num = num.cuda()
     output = model(num)[0]
     _, pred_label = torch.max(output.data, 1)
-    prediction = list(label_to_ix.keys())[pred_label]
+
+    # For some reason 0, 1 maps to 1, 2
+    prediction = pred_label + 1
     return prediction
 
 def parse_all_args():
