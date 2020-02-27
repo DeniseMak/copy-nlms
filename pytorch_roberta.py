@@ -27,7 +27,9 @@ class Pairs(Dataset):
         self.data = dataframe
 
     def __getitem__(self, index):
-        utterance = self.data.num[index]
+        utterance = self.data.sent[index]
+        # print(utterance)
+        # print(type(utterance))
         label = self.data.label[index]
         X, _ = prepare_features(utterance)
         y = torch.tensor(int(self.data.label[index]))
@@ -38,9 +40,9 @@ class Pairs(Dataset):
 
 def main():
     args = parse_all_args()
-    train_set, test_set, label_to_ix, train_tmp, test_tmp = load_data(args.data, args.labels)
-    train_tmp.to_csv(args.data.replace(".txt", "_train.txt"))
-    test_tmp.to_csv(args.data.replace(".txt", "_test.txt"))
+    
+    train_set, label_to_ix, train_tmp = load_data(args.train)
+    test_set, _, test_tmp = load_data(args.test)
 
     print("Finished loading data")
     config = RobertaConfig.from_pretrained('roberta-base')
@@ -134,61 +136,63 @@ def label_dict(dataset):
     """
     label_to_ix = {}
     for label in dataset.label:
-        for word in label.split():
-            if word not in label_to_ix:
-                label_to_ix[word] = len(label_to_ix)
+        # for word in label.split():
+        if label not in label_to_ix:
+            label_to_ix[label] = len(label_to_ix)
     return label_to_ix
 
-def load_data(pair_path, label_path):
+def read_file(path):
+    """
+    Get the lines of a specified file
+    """
+    f = open(path, "r")
+    data = f.readlines()
+    f.close()
+    return data
+
+def load_data(path):
     """
     Load data for model
     """
+    # data = read_file(path)
+    # pairs = list()
+
+    # for row in data:
+    #     pairs.append(row.split(',')[1:])
+
+
+    # dataset = pd.DataFrame(pairs)  
     
-    # Read in sentences
-    sents = []
-    with open(sentences_path, "r") as sentences:
-        for sentence in sentences:
-            sents.append(sentence.strip())
-    X = pd.DataFrame(sents)
-
-    # Read in labels
-    labs = []
-    with open(label_path, "r") as labels:
-        for label in labels:
-            labs.append(label.strip())
-    Y = pd.DataFrame(labs)
-
-    # Merge into one table
-    dataset = pd.concat([X, Y], axis=1, sort=False)
-    dataset.columns = ['sent', 'label']
+    # dataset.columns = ['num', 'label']
+    # dataset['num'] = dataset['num'].astype('str')
+    # print(dataset['num'])
+    # print(type(dataset['num']))
+    dataset = pd.read_csv(path)
 
     label_to_ix = label_dict(dataset)
 
-    train_size = 0.8
-    train_dataset = dataset.sample(
-        frac=train_size, random_state=200).reset_index(drop=True)
-    test_dataset = dataset.drop(train_dataset.index).reset_index(drop=True)
+    # print("FULL Dataset: {}".format(dataset.shape))
+    # print("TRAIN Dataset: {}".format(train_dataset.shape))
+    # print("TEST Dataset: {}".format(test_dataset.shape))
 
-    print("FULL Dataset: {}".format(dataset.shape))
-    print("TRAIN Dataset: {}".format(train_dataset.shape))
-    print("TEST Dataset: {}".format(test_dataset.shape))
-
-    training_set = Pairs(train_dataset)
-    testing_set = Pairs(test_dataset)
+    dataset = Pairs(dataset)
+    # testing_set = Pairs(test_dataset)
 
     params = {'batch_size': 1,
             'shuffle': True,
             'drop_last': False,
             'num_workers': 8}
 
-    training_loader = DataLoader(training_set, **params)
-    testing_loader = DataLoader(testing_set, **params)
+    data_loader = DataLoader(dataset, **params)
+    # testing_loader = DataLoader(testing_set, **params)
 
-    return training_loader, testing_loader, label_to_ix, train_dataset, test_dataset
+    return data_loader, label_to_ix, dataset
 
 def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_token=True, include_SEP_token=True):
     # Tokenzine Input
-    tokens_a = tokenizer.tokenize(seq_1)
+    # NOTE: WHY IS SEQ_1 NAN?
+    # print(str(seq_1))
+    tokens_a = tokenizer.tokenize(str(seq_1))
 
     # Truncate
     if len(tokens_a) > max_seq_length - 2:
@@ -238,13 +242,13 @@ def parse_all_args():
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-data",type=str,  help = "Path to input data file", default = "./data/en_syn_sentences.txt")
+    parser.add_argument("-train",type=str,  help = "Path to input data file", default = "./data/en_syn_sentences_train.txt")
+    parser.add_argument('-test', help = 'Path to test data file', \
+        type=str, default="./data/en_syn_sentences_train.txt")
     parser.add_argument("-lr",type=float,\
             help="The learning rate (float) [default: 0.01]",default=0.01)
     parser.add_argument("-epochs",type=int,\
             help="The number of training epochs (int) [default: 100]",default=100)
-    parser.add_argument('-labels', help = 'Path to input label file', \
-            type=str, default="./data/en_syn_labels.txt")
     parser.add_argument("-v",type=int,\
             help="How often to calculate and print accuracy [default: 1]",default=1)
 
