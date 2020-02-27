@@ -32,7 +32,7 @@ class SynDataset(Dataset):
         self.data = dataframe
 
     def __getitem__(self, index):
-        utterance = self.data.num[index]
+        utterance = self.data.sent[index]
         label = self.data.label[index]
         X, _ = prepare_features(utterance)
         Y = torch.tensor(int(self.data.label[index]))
@@ -42,16 +42,23 @@ class SynDataset(Dataset):
         return self.len
 
 def main():
+    # Parse arguments and get data
     args = parse_all_args()
     train_set, test_set, label_to_ix, = load_data(args.data, args.labels)
-    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v)
-    # train_preds.to_csv(args.data.replace(".txt", "_train_preds.csv"))
-    # test_preds.to_csv(args.data.replace(".txt", "_test_preds.csv"))
-    # get_class('two hundred hundred', model, label_to_ix)
+
+    # Train and evaluate model on training/testing sets
+    model, train_predictions, test_predictions = train(args.lr, train_set, test_set, args.epochs, args.v)
+    
+    # Output testing and training predictions
+    train_predictions.to_csv(args.data.replace(".txt", "_train_preds.csv"))
+    test_predictions.to_csv(args.data.replace(".txt", "_test_preds.csv"))
+
+    # Classify a single example
+    classify('two hundred hundred', model, label_to_ix)
     
 def train(lr, train_data, test_data, epochs, verbosity):
     """
-    Train a model using the specified parameters
+    Train the linear classifier that is on top of the pretrained model.
 
     :param lr: Learning rate for the optimizer
     :param train: Training DataLoader
@@ -59,12 +66,12 @@ def train(lr, train_data, test_data, epochs, verbosity):
     :param verbosity: How often to calculate and print test accuracy
     :return model: trained model
     """
-    model = BertForSequenceClassification.from_pretrained("bert-base-multilingual-cased") # load model with config multilingual cased
+    model = BertForSequenceClassification.from_pretrained("bert-base-multilingual-cased")
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
-    train_preds = list()
-    test_preds = list()
+    train_predictions = list()
+    test_predictions = list()
 
     # Check if Cuda is Available
     if CUDA:
@@ -77,18 +84,18 @@ def train(lr, train_data, test_data, epochs, verbosity):
     # Training loop
     for epoch in range(0, epochs):
         print("Epoch: " + str(epoch))
-        for i, data in enumerate(train_data):
+        for i, (x, y) in enumerate(train_data):
             optimizer.zero_grad() # Reset gradients for each example
-            sent = sent.squeeze(0)
+            x = x.squeeze(0)
             if CUDA:
                 sent = sent.cuda()
                 label = label.cuda()
             
             # Sent the example forward pass and get result
-            output = model.forward(sent)[0]
+            output = model.forward(x)[0]
 
             # Get loss and make backward pass
-            loss = loss_function(output, label)
+            loss = loss_function(output, y)
             loss.backward()
             
             # Adjust the weights
@@ -96,17 +103,17 @@ def train(lr, train_data, test_data, epochs, verbosity):
 
             # Print an incremental test accuracy result
             if i % verbosity == 0:
-                test_acc = classify(model, test_data)
+                test_acc = evaluate(model, test_data)
                 print('({}.{}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc[0]))
 
         # Get overall train/test accuracy (after training completely done)
-        train_acc, train_preds = classify(model, train)
-        test_acc, test_preds = classify(model, test)
+        train_acc, train_predictions = evaluate(model, train)
+        test_acc, test_predictions = evaluate(model, test)
         print('({}.{}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model, pd.DataFrame(train_preds), pd.DataFrame(test_preds)
 
-def classify(model, data):
+def evaluate(model, data):
     """
     Calculate accuracy of the model on classifying a set of data
 
@@ -190,28 +197,35 @@ def load_data(sentences_path, label_path):
     test_dataset.to_csv(sentences_path.replace(".txt", "_test.txt"))
 
     # Parameters for pytorch data loader
-    params = {'batch_size': 4,
+    params = {'batch_size': 1,
             'shuffle': True,
             'drop_last': False,
             'num_workers': 8}
 
     # Make pytorch dataloaders, have to wrap train/test with pytorch dataset class
-    training_loader = DataLoader(SynDataset(train_dataset), **params)
-    testing_loader = DataLoader(SynDataset(test_dataset), **params)
+    train_dataset = SynDataset(train_dataset)
+    test_dataset = SynDataset(test_dataset)
+    training_loader = DataLoader(train_dataset, **params)
+    testing_loader = DataLoader(test_dataset, **params)
 
     return training_loader, testing_loader, label_to_ix
 
 def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_token=True, include_SEP_token=True):
+    """
+    Prepare sentences for being passed into model of choice (BERT, etc.)
+    """
     # Tokenzine Input
     tokens_a = tokenizer.tokenize(seq_1)
 
     # Truncate
     if len(tokens_a) > max_seq_length - 2:
         tokens_a = tokens_a[0:(max_seq_length - 2)]
+
     # Initialize Tokens
     tokens = []
     if include_CLS_token:
         tokens.append(tokenizer.cls_token)
+
     # Add Tokens and separators
     for token in tokens_a:
         tokens.append(token)
@@ -220,27 +234,30 @@ def prepare_features(seq_1, max_seq_length=300, zero_pad=False, include_CLS_toke
         tokens.append(tokenizer.sep_token)
 
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
+
     # Input Mask
     input_mask = [1] * len(input_ids)
+
     # Zero-pad sequence lenght
     if zero_pad:
         while len(input_ids) < max_seq_length:
             input_ids.append(0)
             input_mask.append(0)
+
     return torch.tensor(input_ids).unsqueeze(0), input_mask
 
-def get_class(num, model, label_to_ix):
+def classify(x, model, label_to_ix):
     """
-    Get class of a number in text form for an already trained model
+    Get class of an example
 
-    :param num: (str) Number in text form
-    :return prediction: Class of input number
+    :param x: (str) Example data
+    :return prediction: List of label probabilities
     """
     model.eval()
-    num, _ = prepare_features(num)
+    x, _ = prepare_features(x)
     if CUDA:
         num = num.cuda()
-    output = model(num)[0]
+    output = model(x)[0]
     _, pred_label = torch.max(output.data, 1)
     prediction = list(label_to_ix.keys())[pred_label]
     return prediction
