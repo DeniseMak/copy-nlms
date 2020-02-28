@@ -23,7 +23,7 @@ tokenizer = None
 MAX_LEN = None
 TASK = None
 
-sys.stdout = open('./results/output')
+sys.stdout = open('./results/output', 'w')
 
 CUDA = torch.cuda.is_available()
 if CUDA:
@@ -51,17 +51,21 @@ def main():
     args = parse_all_args()
     TASK = args.task
     
+    print('Loading model')
     model = get_model(args.model)
 
     MAX_LEN = get_seq_len(args.train)
+    print('Max seq len = {}\n Loading data...'.format(MAX_LEN))
 
     train_set, train_tmp = load_data(args.train, args.mb)
     test_set,  test_tmp = load_data(args.test, args.mb)
+    print('Data loaded')
 
+    print("Starting training")
     model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, model)
+    print('Finished training \n Outputting results')
     train_preds.to_csv(args.data.replace(".txt", "_train_preds.csv"))
     test_preds.to_csv(args.data.replace(".txt", "_test_preds.csv"))
-    get_class('two hundred hundred', model, tokenizer)
     
 def get_seq_len(path):
     """
