@@ -243,6 +243,7 @@ def prepare_features(seq):
     # Add Tokens and separators
     for tokens_a in tokens:
         for token in tokens_a:
+            print(len(tokens))
             tokens.append(token)
         if tokens_a != tokens[-1]:
             tokens.append(tokenizer.sep_token)
