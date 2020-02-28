@@ -2,6 +2,7 @@ import pandas as pd
 import argparse
 import numpy as np
 import json
+import sys
 import re
 from tqdm import tqdm_notebook
 from uuid import uuid4
@@ -21,6 +22,9 @@ from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceCl
 tokenizer = None
 MAX_LEN = None
 TASK = None
+
+sys.stdout = open('./results/output')
+
 CUDA = torch.cuda.is_available()
 if CUDA:
     print('Using Cuda')
