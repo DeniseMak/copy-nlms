@@ -13,13 +13,11 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
-# from tensorflow import data_unti
 from transformers import RobertaModel, RobertaTokenizer
 from transformers import RobertaForSequenceClassification, RobertaConfig
 from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
 from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
 
-#NOTE: DONT HARD CODE SEQ LEN!!!!!!!!
 tokenizer = None
 MAX_LEN = None
 CUDA = torch.cuda.is_available()
@@ -28,7 +26,7 @@ if CUDA:
 
 class Data(Dataset):
     def __init__(self, path):
-        self.data = pd.read_csv(path)
+        self.data = pd.read_csv(path).reset_index()
         self.len = len(self.data)
         
     def __getitem__(self, index):
@@ -50,7 +48,7 @@ def main():
     MAX_LEN = get_seq_len(args.train)
 
     train_set, train_tmp = load_data(args.train, args.mb)
-    test_set, test_tmp = load_data(args.test, args.mb)
+    test_set,  test_tmp = load_data(args.test, args.mb)
 
     model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, model)
     train_preds.to_csv(args.data.replace(".txt", "_train_preds.csv"))
@@ -83,19 +81,16 @@ def get_model(model_name):
     # NOTE: Do we need to use config??
     model = None
     if model_name == 'roberta':
-        print('Loading roberta')
         tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
         config = RobertaConfig.from_pretrained('roberta-base')
         model = RobertaForSequenceClassification(config)
 
     elif model_name == 'xlm':
-        print('Loading xlm')
         tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-100-1280')
         config = XLMConfig.from_pretrained('xlm-mlm-100-1280')
         model = XLMForSequenceClassification(config)
 
     elif model_name == 'bert':
-        print('Loading bert')
         tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
         config = BertConfig.from_pretrained('bert-base-multilingual-cased')
         model = BertForSequenceClassification.from_pretrained(config)
@@ -128,7 +123,6 @@ def train(lr, train, test, epochs, verbosity, model):
     model = model.train()
 
     for epoch in range(0, epochs):
-        print("Epoch: " + str(epoch))
         i = 0
         for x, y in train:
             optimizer.zero_grad()
@@ -143,11 +137,11 @@ def train(lr, train, test, epochs, verbosity, model):
             optimizer.step()
             if i % verbosity == 0:
                 test_acc = validation(model, test)
-                print('({}.{}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc[0]))
+                print('({}.{:03d}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
             i += 1
         train_acc, train_preds = validation(model, train)
         test_acc, test_preds = validation(model, test)
-        print('({}.{}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
+        print('({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model, pd.DataFrame(train_preds), pd.DataFrame(test_preds)
 
@@ -161,7 +155,7 @@ def validation(model, data):
     """
     correct = 0
     total = 0
-    predictions = list()
+
     for x, y in data:
 
         x = x.squeeze(1)
@@ -172,13 +166,12 @@ def validation(model, data):
 
         output = model(x)
         _, predicted = torch.max(output[0].detach(), 1)
-        predictions.append(predicted)
-        
-        total += 1
         correct += (predicted.cpu() == y.cpu()).sum()
+        total += x.shape[0]
+
     accuracy = correct.numpy() / total
 
-    return accuracy, predictions
+    return accuracy
 
 def read_file(path):
     """
@@ -214,15 +207,14 @@ def prepare_features(seq):
     if len(tokens_a) > MAX_LEN - 2:
         tokens_a = tokens_a[0:(MAX_LEN - 2)]
     # Initialize Tokens
-    tokens = []
+    tokens = [tokenizer.cls_token]
+    # tokens.append()
 
-    tokens.append(tokenizer.cls_token)
     # Add Tokens and separators
     for token in tokens_a:
         tokens.append(token)
 
     tokens.append(tokenizer.sep_token)
-
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
 
     # Zero-pad sequence length
@@ -260,7 +252,7 @@ def parse_all_args():
     parser.add_argument("-train",type=str,  help = "Path to input data file", \
         default = "./data/en_syn_sentences_train.txt")
     parser.add_argument('-test', help = 'Path to test data file', \
-        type=str, default="./data/en_syn_sentences_train.txt")
+        type=str, default="./data/en_syn_sentences_test.txt")
     parser.add_argument("-model",type=str,  help = "Model type to use", default = "xlm")
     parser.add_argument("-lr",type=float,\
             help="The learning rate (float) [default: 0.01]",default=0.01)
