@@ -218,7 +218,7 @@ def prepare_features(seq):
     for sent in seq:
         tokens_a += tokenizer.tokenize(seq)
         if sent != seq[-1]:
-            tokens.append(tokenizer.sep_token)
+            tokens_a.append(tokenizer.sep_token)
 
 
     # Truncate
