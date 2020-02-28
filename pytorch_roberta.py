@@ -32,9 +32,13 @@ class Data(Dataset):
         
     def __getitem__(self, index):
         sentence = self.data.sents[index]
+        print(sentence)
         label = self.data.labels[index]
+        print(label)
         X = prepare_features(sentence)
-        y = torch.tensor(int(self.data.labels[index]))
+        print(X)
+        y = torch.tensor(int(label))
+        print(y)
         return X, y
 
     def __len__(self):
