@@ -204,10 +204,10 @@ def load_data(path, batch_size):
     Load data for model
     """
     dataset = Data(path)
-    for i, (x, y) in enumerate(dataset):
-        print(i)
-        print(x)
-        print(y)
+    # for i, (x, y) in enumerate(dataset):
+    #     print(i)
+    #     print(x)
+    #     print(y)
     params = {'batch_size': batch_size,
             'shuffle': True,
             'drop_last': False,
