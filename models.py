@@ -24,6 +24,7 @@ MAX_LEN = None
 TASK = None
 
 sys.stdout = open('./results/output', 'w')
+print('test')
 
 CUDA = torch.cuda.is_available()
 if CUDA:
