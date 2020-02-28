@@ -225,7 +225,7 @@ def prepare_features(seq):
         seq = seq.split(';')
     
     # Tokenzine Input
-    tokens = list()
+    token_sets = list()
     for sent in seq:
         tokens_a = tokenizer.tokenize(sent)
         # if sent != seq[-1]:
@@ -235,15 +235,15 @@ def prepare_features(seq):
         # Truncate
         if len(tokens_a) > MAX_LEN - 2:
             tokens_a = tokens_a[0:(MAX_LEN - 2)]
-        tokens.append(tokens_a)
+        token_sets.append(tokens_a)
     # Initialize Tokens
     tokens = [tokenizer.cls_token]
     # tokens.append()
 
     # Add Tokens and separators
-    for tokens_a in tokens:
+    for tokens_a in token_sets:
         for token in tokens_a:
-            print(len(tokens))
+            
             tokens.append(token)
         if tokens_a != tokens[-1]:
             tokens.append(tokenizer.sep_token)
