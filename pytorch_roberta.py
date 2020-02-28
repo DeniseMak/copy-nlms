@@ -219,7 +219,7 @@ def prepare_features(seq):
     # Tokenzine Input
     tokens = list()
     for sent in seq:
-        tokens_a = tokenizer.tokenize(seq)
+        tokens_a = tokenizer.tokenize(sent)
         # if sent != seq[-1]:
         #     tokens_a.append(tokenizer.sep_token)
 
