@@ -82,18 +82,18 @@ def get_model(model_name):
     model = None
     if model_name == 'roberta':
         tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-        config = RobertaConfig.from_pretrained('roberta-base')
-        model = RobertaForSequenceClassification(config)
+        # config = RobertaConfig.from_pretrained('roberta-base')
+        model = RobertaForSequenceClassification('roberta-base')
 
     elif model_name == 'xlm':
         tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-100-1280')
-        config = XLMConfig.from_pretrained('xlm-mlm-100-1280')
-        model = XLMForSequenceClassification(config)
+        # config = XLMConfig.from_pretrained('xlm-mlm-100-1280')
+        model = XLMForSequenceClassification('xlm-mlm-100-1280')
 
     elif model_name == 'bert':
         tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
-        config = BertConfig.from_pretrained('bert-base-multilingual-cased')
-        model = BertForSequenceClassification.from_pretrained(config)
+        # config = BertConfig.from_pretrained('bert-base-multilingual-cased')
+        model = BertForSequenceClassification.from_pretrained('bert-base-multilingual-cased')
 
     config.num_labels = 2
 

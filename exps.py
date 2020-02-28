@@ -1,8 +1,8 @@
 import subprocess
 
 langs = ['en', 'ja', 'dk', 'fr']
-models = ['bert', 'xlm']
-tasks = ['syn', 'sem']
+models = ['roberta', 'bert', 'xlm']
+tasks = ['syn']
 
 for task in tasks:
     for model in models:
