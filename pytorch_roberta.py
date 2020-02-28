@@ -31,15 +31,15 @@ class Data(Dataset):
         self.len = len(self.data)
         
     def __getitem__(self, index):
-        print(self.data.sents[index])
+        # print(self.data.sents[index])
         sentence = self.data.sents[index]
-        print(sentence)
+        # print(sentence)
         label = self.data.labels[index]
-        print(label)
+        # print(label)
         X = prepare_features(sentence)
-        print(X)
+        # print(X)
         y = torch.tensor(int(label))
-        print(y)
+        # print(y)
         return X, y
 
     def __len__(self):
