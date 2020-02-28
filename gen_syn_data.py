@@ -1,3 +1,4 @@
+from sklearn.model_selection import train_test_split
 from num2words import num2words
 import pandas as pd
 import argparse
@@ -15,17 +16,25 @@ def main():
     text = to_text(pairs, args.lang) # Turn numbers into text
     text, labels = ungram_split(text, labels, args.samples, args.lang) # Make ungrammatical
 
+    nums = list()
+    for num in text:
+        nums.append(' '.join(num))
+    num_data = pd.DataFrame({'nums' : nums, 'labels' : labels})
+
     text = to_sent(text, args.lang)
     all_data = pd.DataFrame({'sents' : text, 'labels' : labels})
 
-    train_data = all_data.sample(frac=0.8).reset_index()
+    train_data, test_data = train_test_split(all_data, test_size=0.2)
+
+    train_data = train_data.reset_index()
+    test_data = test_data.reset_index()
     del train_data['index']
-    test_data = all_data.drop(train_data.index).reset_index()
     del test_data['index']
 
     # Output
     train_data.to_csv(args.dir + args.lang + "_syn_train.csv")
     test_data.to_csv(args.dir + args.lang + "_syn_test.csv")
+    num_data.to_csv(args.dir + args.lang + "_syn_nums.csv")
 
 def ungram_split(pairs, labels, samples, lang):
     """

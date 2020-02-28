@@ -1,3 +1,4 @@
+from sklearn.model_selection import train_test_split
 from num2words import num2words
 import pandas as pd
 import argparse
@@ -16,18 +17,23 @@ def main():
         output_pairs(args.dir + "sem_int_pairs.txt", pairs)
     
     labels = gen_sem_labels(pairs)
-    final = to_text(pairs, args.lang)
-    # text = to_sent(text, args.lang)
+    
+    final, nums = to_text(pairs, args.lang)
+
+    num_data = pd.DataFrame({'nums' : nums, 'labels' : labels})
     all_data = pd.DataFrame({'sents' : final, 'labels' : labels})
 
-    train_data = all_data.sample(frac=0.8).reset_index()
+    train_data, test_data = train_test_split(all_data, test_size=0.2)
+
+    train_data = train_data.reset_index()
+    test_data = test_data.reset_index()
     del train_data['index']
-    test_data = all_data.drop(train_data.index).reset_index()
     del test_data['index']
     
     # Output
     train_data.to_csv(args.dir + args.lang + "_sem_train.csv")
-    test_data.to_csv(args.dir + args.lang + "_sem_test.csv")     
+    test_data.to_csv(args.dir + args.lang + "_sem_test.csv") 
+    num_data.to_csv(args.dir + args.lang + "_em_nums.csv")    
 
 def load_prev(path):
     """
@@ -82,6 +88,7 @@ def to_text(pairs, lang):
     :return text: (list) Integer pairs in word form
     """
     text = list()
+    nums = list()
 
     with open('./templates/' + lang + '_templates.txt', 'r') as f:
         sentences = f.readlines()
@@ -89,6 +96,7 @@ def to_text(pairs, lang):
     for pair in pairs:
         sent = random.choice(sentences)
         new = [num2words(pair[0], lang=lang)]
+        num_pair = list()
         if pair[1] > -1:
             new.append(num2words(pair[1], lang=lang))
         
@@ -97,10 +105,12 @@ def to_text(pairs, lang):
             new[i] = new[i].replace(',', ' ')
             new[i] = re.sub(' +', ' ', new[i])
             new[i] = new[i].strip()
+            num_pair.append(new[i])
             new[i] = sent.replace('***', new[i]).strip()
+        nums.append('; '.join(num_pair))
         text.append('; '.join(new))
 
-    return text
+    return text, nums
 
 def gen_sem_labels(pairs):
     """

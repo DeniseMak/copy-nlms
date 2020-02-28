@@ -31,15 +31,10 @@ class Data(Dataset):
         self.len = len(self.data)
         
     def __getitem__(self, index):
-        # print(self.data.sents[index])
         sentence = self.data.sents[index]
-        # print(sentence)
         label = self.data.labels[index]
-        # print(label)
         X = prepare_features(sentence)
-        # print(X)
         y = torch.tensor(int(label))
-        # print(y)
         return X, y
 
     def __len__(self):
@@ -133,10 +128,7 @@ def train(lr, train, test, epochs, verbosity, model):
 
     for epoch in range(0, epochs):
         i = 0
-        print(train)
         for x, y in train:
-            print(x)
-            print(y)
             optimizer.zero_grad()
             x = x.squeeze(1)
 
