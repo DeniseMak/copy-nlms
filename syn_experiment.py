@@ -23,10 +23,8 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
 
 # Globals
-tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+tokenizer = None
 CUDA = torch.cuda.is_available()
-if CUDA:
-    print('Cuda is availible')
 
 class SynDataset(Dataset):
     """
@@ -36,11 +34,11 @@ class SynDataset(Dataset):
         self.data = df
 
     def __getitem__(self, index):
-        utterance = self.data.sent[index]
+        sentence = self.data.sent[index]
         label = self.data.label[index]
-        X, _ = prepare_features(utterance)
-        Y = torch.tensor(int(self.data.label[index]))
-        return X, Y
+        X = prepare_features(sentence)
+        y = torch.tensor(int(self.data.label[index]))
+        return X, y
 
     def __len__(self):
         return len(self.data)
@@ -55,11 +53,17 @@ def main():
     test_data = all_data.drop(train_data.index).reset_index(drop=True)
 
     # Format to use with pytorch
-    train_loader = DataLoader(SynDataset(train_data))
-    test_loader = DataLoader(SynDataset(test_data))
+    params = {'batch_size': args.batch_size,
+            'shuffle': True,
+            'drop_last': False,
+            'num_workers': 8}
+    train_loader = DataLoader(SynDataset(train_data), **params)
+    test_loader = DataLoader(SynDataset(test_data), **params)
+
+    model = get_model(args.model)
 
     # Train and evaluate model on training/testing sets
-    model, train_predictions, test_predictions = train(args.lr, train_loader, test_loader, args.epochs, args.v)
+    train_predictions, test_predictions = train(model, args.lr, train_loader, test_loader, args.epochs, args.v)
     
     # # Output testing and training predictions
     # train_predictions.to_csv(args.data.replace(".txt", "_train_preds.csv"))
@@ -68,7 +72,7 @@ def main():
     # # Classify a single example
     # classify_example('two hundred hundred', model, label_to_ix)
     
-def train(lr, train_data, test_data, epochs, verbosity):
+def train(model, lr, train_data, test_data, epochs, verbosity):
     """
     Train the linear classifier that is on top of the pretrained model.
 
@@ -78,7 +82,6 @@ def train(lr, train_data, test_data, epochs, verbosity):
     :param verbosity: How often to calculate and print test accuracy
     :return model: trained model
     """
-    model = BertForSequenceClassification.from_pretrained("bert-base-multilingual-cased")
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
@@ -97,7 +100,7 @@ def train(lr, train_data, test_data, epochs, verbosity):
     for epoch in range(0, epochs):
         print("Epoch: " + str(epoch))
         for i, (x, y) in enumerate(train_data):
-            optimizer.zero_grad() # Reset gradients for each example
+            optimizer.zero_grad() # Reset gradients for each batch
             x = x.squeeze(0)
             if CUDA:
                 sent = sent.cuda()
@@ -123,7 +126,7 @@ def train(lr, train_data, test_data, epochs, verbosity):
         test_acc, test_predictions = evaluate(model, test)
         print('({}.{}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
-    return model, pd.DataFrame(train_preds), pd.DataFrame(test_preds)
+    return pd.DataFrame(train_predictions), pd.DataFrame(test_predictions)
 
 def evaluate(model, data):
     """
@@ -217,6 +220,34 @@ def classify_example(x, model, label_to_ix):
     prediction = list(label_to_ix.keys())[pred_label]
     return prediction
 
+def get_model(model_name):
+    """
+    Load the model and tokenizer function specified by the user
+
+    :param model_name: Name of the model
+    :return model: Pretrained model
+    """
+    global tokenizer
+    model = None
+    if model_name == 'roberta':
+        print('Loading roberta')
+        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+        model = RobertaForSequenceClassification('roberta-base')
+
+    elif model_name == 'xlm':
+        print('Loading xlm')
+        tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-100-1280')
+        model = XLMForSequenceClassification('xlm-mlm-100-1280')
+
+    elif model_name == 'bert':
+        print('Loading bert')
+        tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+        model = BertForSequenceClassification.from_pretrained('bert-base-multilingual-cased')
+
+    model.config.num_labels = 2
+
+    return model
+
 def parse_all_args():
     """
     Parse args to be used as hyperparameters for model
@@ -233,6 +264,8 @@ def parse_all_args():
             help="The number of training epochs (int) [default: 100]",default=100)
     parser.add_argument("-v",type=int,\
             help="How often to calculate and print accuracy [default: 1]",default=1)
+    parser.add_argument("-batch_size", type=int, help="How large batches should be (int)", default=32)
+    parser.add_argument("-model",type=str,  help = "Model type to use", default = "xlm")
 
     return parser.parse_args()
 
