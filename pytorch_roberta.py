@@ -31,6 +31,7 @@ class Data(Dataset):
         self.len = len(self.data)
         
     def __getitem__(self, index):
+        print(self.data.sents[index])
         sentence = self.data.sents[index]
         print(sentence)
         label = self.data.labels[index]
