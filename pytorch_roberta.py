@@ -99,7 +99,7 @@ def get_model(model_name):
         # config = BertConfig.from_pretrained('bert-base-multilingual-cased')
         model = BertForSequenceClassification.from_pretrained('bert-base-multilingual-cased')
 
-    config.num_labels = 2
+    # config.num_labels = 2
 
     return model
 
