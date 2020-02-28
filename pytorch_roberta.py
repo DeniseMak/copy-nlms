@@ -138,7 +138,6 @@ def train(lr, train, test, epochs, verbosity, model):
             if i % verbosity == 0:
                 test_acc, preds = validation(model, test)
                 print('({}.{:03d}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
-                exit()
             i += 1
         train_acc, train_preds = validation(model, train)
         test_acc, test_preds = validation(model, test)
@@ -176,10 +175,7 @@ def validation(model, data):
         total += x.shape[0]
 
     accuracy = correct.numpy() / total
-    np.savetxt('pred.csv', predictions.numpy())
-    np.savetxt('y.csv', Y.numpy())
-    
-    print(predictions.shape)
+
     return accuracy, predictions
 
 def read_file(path):
