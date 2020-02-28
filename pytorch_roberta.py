@@ -66,7 +66,7 @@ def get_seq_len(path):
 
     df = pd.read_csv(path)
     max_len = 0
-    for row in df['sent']:
+    for row in df['sents']:
         toks = tokenizer.tokenize(row)
         curr_len = len(tokenizer.convert_tokens_to_ids(toks))
         if curr_len > max_len:
