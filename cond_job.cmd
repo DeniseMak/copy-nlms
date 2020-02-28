@@ -1,7 +1,7 @@
-executable = pytorch_roberta.sh
+executable = condor_script.sh
 getenv  = true
-error   = hw6.error
-log     = hw6.log
+error   = exp.error
+log     = exp.log
 notification = always
 transfer_executable = false
 request_GPUs = 1
