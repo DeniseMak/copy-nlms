@@ -1,4 +1,4 @@
-executable = test_job.sh
+executable = condor_script.sh
 getenv  = true
 error   = exp.error
 log     = exp.log
