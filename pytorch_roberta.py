@@ -22,7 +22,7 @@ tokenizer = None
 MAX_LEN = None
 CUDA = torch.cuda.is_available()
 if CUDA:
-    print('Cuda is availible')
+    print('Using Cuda')
 
 class Data(Dataset):
     def __init__(self, path):
@@ -136,8 +136,9 @@ def train(lr, train, test, epochs, verbosity, model):
             loss.backward()
             optimizer.step()
             if i % verbosity == 0:
-                test_acc = validation(model, test)
+                test_acc, preds = validation(model, test)
                 print('({}.{:03d}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
+                exit()
             i += 1
         train_acc, train_preds = validation(model, train)
         test_acc, test_preds = validation(model, test)
@@ -156,6 +157,9 @@ def validation(model, data):
     correct = 0
     total = 0
 
+    predictions = torch.LongTensor()
+    Y = torch.LongTensor()
+
     for x, y in data:
 
         x = x.squeeze(1)
@@ -166,12 +170,17 @@ def validation(model, data):
 
         output = model(x)
         _, predicted = torch.max(output[0].detach(), 1)
+        predictions = torch.cat((predictions, predicted))
+        Y = torch.cat((Y, y))
         correct += (predicted.cpu() == y.cpu()).sum()
         total += x.shape[0]
 
     accuracy = correct.numpy() / total
-
-    return accuracy
+    np.savetxt('pred.csv', predictions.numpy())
+    np.savetxt('y.csv', Y.numpy())
+    
+    print(predictions.shape)
+    return accuracy, predictions
 
 def read_file(path):
     """
