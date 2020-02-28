@@ -1,4 +1,5 @@
 from num2words import num2words
+import pandas as pd
 import argparse
 import random
 import os
@@ -14,8 +15,17 @@ def main():
     text = to_text(pairs, args.lang) # Turn numbers into text
     text, labels = ungram_split(text, labels, args.samples, args.lang) # Make ungrammatical
 
+    text = to_sent(text, args.lang)
+    all_data = pd.DataFrame({'sents' : text, 'labels' : labels})
+
+    train_data = all_data.sample(frac=0.8).reset_index()
+    del train_data['index']
+    test_data = all_data.drop(train_data.index).reset_index()
+    del test_data['index']
+
     # Output
-    output_data(args.dir + args.lang + "_syn_data.csv", text, labels, args.lang) 
+    train_data.to_csv(args.dir + args.lang + "_syn_train.csv")
+    test_data.to_csv(args.dir + args.lang + "_syn_test.csv")
 
 def ungram_split(pairs, labels, samples, lang):
     """
@@ -133,7 +143,7 @@ def to_text(pairs, lang):
 
     return text
 
-def output_data(path, data, labels, lang):
+def to_sent(data, lang):
     """
     Format number pairs write to a specified file
     :param path: (str) Filepath to write to
@@ -144,19 +154,19 @@ def output_data(path, data, labels, lang):
     with open('./templates/' + lang + '_templates.txt', 'r', encoding="utf-8") as f:
         sentences = f.readlines()
 
-    # Open output file
-    with open(path, "w+", encoding="utf-8") as f:
-        f.write("sent,label\n")
-        for i, item in enumerate(data):
-            string = random.choice(sentences).strip()
-            if len(item) == 1:
-                string = string.replace("***", item[0])
-            else:
-                string = string.replace("***", item[0] + " " + item[1])
-            if lang == 'ja':
-                f.write(string.replace(' ', '') + ',' + str(labels[i]) + "\n")
-            else:
-                f.write(string + "," + str(labels[i]) + '\n')
+
+    sents = list()
+    for item in data:
+        string = random.choice(sentences).strip()
+        if len(item) == 1:
+            string = string.replace("***", item[0])
+        else:
+            string = string.replace("***", item[0] + " " + item[1])
+        if lang == 'ja':
+            string = string.replace(' ', '')
+        sents.append(string)
+
+    return sents
 
 def parse_all_args():
     """

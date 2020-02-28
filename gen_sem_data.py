@@ -1,4 +1,5 @@
 from num2words import num2words
+import pandas as pd
 import argparse
 import random
 import os
@@ -16,8 +17,17 @@ def main():
     
     labels = gen_sem_labels(pairs)
     final = to_text(pairs, args.lang)
-    output_pairs(args.dir + args.lang + "_sem_pair_words.txt", final)
-    output_indvs(args.dir + args.lang + "_sem_labels.txt", labels)        
+    # text = to_sent(text, args.lang)
+    all_data = pd.DataFrame({'sents' : final, 'labels' : labels})
+
+    train_data = all_data.sample(frac=0.8).reset_index()
+    del train_data['index']
+    test_data = all_data.drop(train_data.index).reset_index()
+    del test_data['index']
+    
+    # Output
+    train_data.to_csv(args.dir + args.lang + "_sem_train.csv")
+    test_data.to_csv(args.dir + args.lang + "_sem_test.csv")     
 
 def load_prev(path):
     """
@@ -88,7 +98,7 @@ def to_text(pairs, lang):
             new[i] = re.sub(' +', ' ', new[i])
             new[i] = new[i].strip()
             new[i] = sent.replace('***', new[i]).strip()
-        text.append(new)
+        text.append('; '.join(new))
 
     return text
 
