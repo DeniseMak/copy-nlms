@@ -13,10 +13,10 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
-from pytorch-transformers import RobertaModel, RobertaTokenizer
-from pytorch-transformers import RobertaForSequenceClassification, RobertaConfig
-from pytorch-transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
-from pytorch-transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
+from transformers import RobertaModel, RobertaTokenizer
+from transformers import RobertaForSequenceClassification, RobertaConfig
+from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
+from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
 
 tokenizer = None
 MAX_LEN = None
