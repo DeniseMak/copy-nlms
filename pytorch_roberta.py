@@ -20,6 +20,7 @@ from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceCl
 
 tokenizer = None
 MAX_LEN = None
+TASK = None
 CUDA = torch.cuda.is_available()
 if CUDA:
     print('Using Cuda')
@@ -41,7 +42,10 @@ class Data(Dataset):
 
 def main():
     global MAX_LEN
+    global TASK
+
     args = parse_all_args()
+    TASK = args.task
     
     model = get_model(args.model)
 
@@ -204,9 +208,18 @@ def load_data(path, batch_size):
 
 def prepare_features(seq):
     global MAX_LEN
+    global TASK
+
+    if TASK == 'sem':
+        seq = seq.split(';')
     
     # Tokenzine Input
-    tokens_a = tokenizer.tokenize(seq)
+    tokens_a = list()
+    for sent in seq:
+        tokens_a += tokenizer.tokenize(seq)
+        if sent != seq[-1]:
+            tokens.append(tokenizer.sep_token)
+
 
     # Truncate
     if len(tokens_a) > MAX_LEN - 2:
@@ -219,7 +232,7 @@ def prepare_features(seq):
     for token in tokens_a:
         tokens.append(token)
 
-    tokens.append(tokenizer.sep_token)
+    # tokens.append(tokenizer.sep_token)
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
 
     # Zero-pad sequence length
@@ -256,6 +269,8 @@ def parse_all_args():
 
     parser.add_argument("-train",type=str,  help = "Path to input data file", \
         default = "./data/en_syn_sentences_train.txt")
+    parser.add_argument("-task",type=str,  help = "Whether to to the syntactic or semantic task", \
+        default = "syn")
     parser.add_argument('-test', help = 'Path to test data file', \
         type=str, default="./data/en_syn_sentences_test.txt")
     parser.add_argument("-model",type=str,  help = "Model type to use", default = "xlm")
