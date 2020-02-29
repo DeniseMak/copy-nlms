@@ -216,18 +216,8 @@ def load_data(path, batch_size):
 
     return data_loader, dataset
 
-def tok_seq(seq):
-    # Tokenzine Input
-    tokens_a = tokenizer.tokenize(seq)
-
-    # Initialize Tokens
-    tokens = [tokenizer.cls_token]
-
-    # Add Tokens and separators
-    for token in tokens_a:
-        tokens.append(token)
-
-    tokens.append(tokenizer.sep_token)
+# def tok_seq(seq):
+    
 
 def prepare_features(seq):
     global MAX_LEN
@@ -235,7 +225,17 @@ def prepare_features(seq):
     seq = seq.split(';')
     tokens = list()
     for s in seq:
-        tokens += tok_seq(seq)
+        # Tokenzine Input
+        tokens_a = tokenizer.tokenize(s)
+
+        # Initialize Tokens
+        tokens = [tokenizer.cls_token]
+
+        # Add Tokens and separators
+        for token in tokens_a:
+            tokens.append(token)
+
+        tokens.append(tokenizer.sep_token)
 
     # Truncate
     # if len(tokens) > MAX_LEN:
