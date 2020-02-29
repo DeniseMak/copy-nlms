@@ -47,7 +47,7 @@ def main():
     global TASK
 
     args = parse_all_args()
-    sys.stdout = open(args.out_f, 'w')
+    sys.stdout = open(args.out_f, 'w+')
     TASK = args.task
     
     print('Loading model')
