@@ -2,7 +2,7 @@ import os
 
 langs = ['en', 'ja', 'dk', 'fr']
 models = ['roberta', 'bert', 'xlm']
-tasks = ['syn', 'sem']
+tasks = ['syn']#, 'sem']
 
 for task in tasks:
     for model in models:

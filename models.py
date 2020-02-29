@@ -220,36 +220,22 @@ def load_data(path, batch_size):
 
 def prepare_features(seq):
     global MAX_LEN
-    global TASK
-
-    if TASK == 'sem':
-        seq = seq.split(';')
     
     # Tokenzine Input
-    token_sets = list()
-    for sent in seq:
-        tokens_a = tokenizer.tokenize(sent)
-        # if sent != seq[-1]:
-        #     tokens_a.append(tokenizer.sep_token)
+    tokens_a = tokenizer.tokenize(seq)
 
-
-        # Truncate
-        if len(tokens_a) > MAX_LEN - 2:
-            tokens_a = tokens_a[0:(MAX_LEN - 2)]
-        token_sets.append(tokens_a)
+    # Truncate
+    if len(tokens_a) > MAX_LEN - 2:
+        tokens_a = tokens_a[0:(MAX_LEN - 2)]
     # Initialize Tokens
     tokens = [tokenizer.cls_token]
     # tokens.append()
 
     # Add Tokens and separators
-    for tokens_a in token_sets:
-        for token in tokens_a:
-            
-            tokens.append(token)
-        if tokens_a != tokens[-1]:
-            tokens.append(tokenizer.sep_token)
+    for token in tokens_a:
+        tokens.append(token)
 
-    # tokens.append(tokenizer.sep_token)
+    tokens.append(tokenizer.sep_token)
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
 
     # Zero-pad sequence length
