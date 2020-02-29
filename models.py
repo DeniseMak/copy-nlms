@@ -136,8 +136,6 @@ def train(lr, train, test, epochs, verbosity, model):
     for epoch in range(0, epochs):
         i = 0
         for x, y in train:
-            print(x)
-            print(y)
             optimizer.zero_grad()
             x = x.squeeze(1)
 
@@ -218,38 +216,33 @@ def load_data(path, batch_size):
 
     return data_loader, dataset
 
+# def tok_seq(seq):
+    
+
 def prepare_features(seq):
     global MAX_LEN
-    global TASK
 
-    if TASK == 'sem':
-        seq = seq.split(';')
-    
-    # Tokenzine Input
-    token_sets = list()
-    for sent in seq:
-        tokens_a = tokenizer.tokenize(sent)
-        # if sent != seq[-1]:
-        #     tokens_a.append(tokenizer.sep_token)
-
-
-        # Truncate
-        if len(tokens_a) > MAX_LEN - 2:
-            tokens_a = tokens_a[0:(MAX_LEN - 2)]
-        token_sets.append(tokens_a)
-    # Initialize Tokens
+    seq = seq.split(';')
+    tokens = list()
     tokens = [tokenizer.cls_token]
-    # tokens.append()
+    for s in seq:
+        # Tokenzine Input
+        tokens_a = tokenizer.tokenize(s)
 
-    # Add Tokens and separators
-    for tokens_a in token_sets:
+        # Initialize Tokens
+        
+
+        # Add Tokens and separators
         for token in tokens_a:
-            
             tokens.append(token)
-        if tokens_a != tokens[-1]:
-            tokens.append(tokenizer.sep_token)
 
-    # tokens.append(tokenizer.sep_token)
+        tokens.append(tokenizer.sep_token)
+
+    # Truncate
+    # if len(tokens) > MAX_LEN:
+    #     tokens = tokens_a[0:(MAX_LEN)]
+    #     tokens.append(tokenizer.sep_token)
+
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
 
     # Zero-pad sequence length
