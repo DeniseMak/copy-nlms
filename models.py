@@ -216,24 +216,32 @@ def load_data(path, batch_size):
 
     return data_loader, dataset
 
-def prepare_features(seq):
-    global MAX_LEN
-    
+def tok_seq(seq):
     # Tokenzine Input
     tokens_a = tokenizer.tokenize(seq)
 
-    # Truncate
-    if len(tokens_a) > MAX_LEN - 2:
-        tokens_a = tokens_a[0:(MAX_LEN - 2)]
     # Initialize Tokens
     tokens = [tokenizer.cls_token]
-    # tokens.append()
 
     # Add Tokens and separators
     for token in tokens_a:
         tokens.append(token)
 
     tokens.append(tokenizer.sep_token)
+
+def prepare_features(seq):
+    global MAX_LEN
+
+    seq = seq.split(';')
+    tokens = list()
+    for s in seq:
+        tokens += tok_seq(seq)
+
+    # Truncate
+    # if len(tokens) > MAX_LEN:
+    #     tokens = tokens_a[0:(MAX_LEN)]
+    #     tokens.append(tokenizer.sep_token)
+
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
 
     # Zero-pad sequence length
