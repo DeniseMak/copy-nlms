@@ -23,9 +23,6 @@ tokenizer = None
 MAX_LEN = None
 TASK = None
 
-sys.stdout = open('./results/output', 'w')
-print('test')
-
 CUDA = torch.cuda.is_available()
 if CUDA:
     print('Using Cuda')
@@ -50,6 +47,7 @@ def main():
     global TASK
 
     args = parse_all_args()
+    sys.stdout = open(args.out_f, 'w')
     TASK = args.task
     
     print('Loading model')
@@ -290,6 +288,8 @@ def parse_all_args():
         default = "syn")
     parser.add_argument('-test', help = 'Path to test data file', \
         type=str, default="./data/en_syn_sentences_test.txt")
+    parser.add_argument("-out_f",type=str,  help = "Path to output acc file", \
+        default = "./results/res")
     parser.add_argument("-model",type=str,  help = "Model type to use", default = "xlm")
     parser.add_argument("-lr",type=float,\
             help="The learning rate (float) [default: 0.01]",default=0.01)
