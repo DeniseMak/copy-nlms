@@ -136,8 +136,6 @@ def train(lr, train, test, epochs, verbosity, model):
     for epoch in range(0, epochs):
         i = 0
         for x, y in train:
-            print(x)
-            print(y)
             optimizer.zero_grad()
             x = x.squeeze(1)
 
