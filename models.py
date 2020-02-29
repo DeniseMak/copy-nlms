@@ -224,12 +224,13 @@ def prepare_features(seq):
 
     seq = seq.split(';')
     tokens = list()
+    tokens = [tokenizer.cls_token]
     for s in seq:
         # Tokenzine Input
         tokens_a = tokenizer.tokenize(s)
 
         # Initialize Tokens
-        tokens = [tokenizer.cls_token]
+        
 
         # Add Tokens and separators
         for token in tokens_a:
