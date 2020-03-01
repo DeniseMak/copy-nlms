@@ -63,8 +63,8 @@ def main():
     print("Starting training")
     model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, model)
     print('Finished training \n Outputting results')
-    train_preds.to_csv(args.data.replace(".txt", "_train_preds.csv"))
-    test_preds.to_csv(args.data.replace(".txt", "_test_preds.csv"))
+    train_preds.to_csv("./results/{}_{}_{}_train_preds.csv".format(args.lang, args.task, args.model)))
+    test_preds.to_csv("./results/{}_{}_{}_test_preds.csv".format(args.lang, args.task, args.model)))
     
 def get_seq_len(path):
     """
@@ -208,7 +208,7 @@ def load_data(path, batch_size):
     #     print(x)
     #     print(y)
     params = {'batch_size': batch_size,
-            'shuffle': True,
+            'shuffle': False,
             'drop_last': False,
             'num_workers': 8}
 
