@@ -2,7 +2,7 @@ import os
 
 langs = ['en', 'ja', 'dk', 'fr']
 tasks = ['sem', 'syn']
-
+models = ['xlm', 'bert']
 for task in tasks:
     for model in models:
         for lang in langs:
