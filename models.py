@@ -25,7 +25,7 @@ TASK = None
 
 CUDA = torch.cuda.is_available()
 if CUDA:
-    print('Using Cuda')
+    sys.stdout.write('Using Cuda')
 
 class Data(Dataset):
     def __init__(self, path):
@@ -46,26 +46,26 @@ def main():
     global MAX_LEN
     global TASK
     
-    print('Starting')
+    sys.stdout.write('Starting')
 
     args = parse_all_args()
     sys.stdout = open(args.out_f, 'w+')
-    print('Starting')
+    sys.stdout.write('Starting')
     TASK = args.task
     
-    print('Loading model')
+    sys.stdout.write('Loading model')
     model = get_model(args.model)
 
     MAX_LEN = get_seq_len(args.train)
-    print('Max seq len = {}\n Loading data...'.format(MAX_LEN))
+    sys.stdout.write('Max seq len = {}\n Loading data...'.format(MAX_LEN))
 
     train_set, train_tmp = load_data(args.train, args.mb)
     test_set,  test_tmp = load_data(args.test, args.mb)
-    print('Data loaded')
+    sys.stdout.write('Data loaded')
 
-    print("Starting training")
+    sys.stdout.write("Starting training")
     model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, model)
-    print('Finished training \n Outputting results')
+    sys.stdout.write('Finished training \n Outputting results')
     train_preds.to_csv("./results/{}_{}_{}_train_preds.csv".format(args.lang, args.task, args.model))
     test_preds.to_csv("./results/{}_{}_{}_test_preds.csv".format(args.lang, args.task, args.model))
     
@@ -151,11 +151,11 @@ def train(lr, train, test, epochs, verbosity, model):
             optimizer.step()
             if i % verbosity == 0:
                 test_acc, preds = validation(model, test)
-                print('({}.{:03d}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
+                sys.stdout.write('({}.{:03d}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
             i += 1
         train_acc, train_preds = validation(model, train)
         test_acc, test_preds = validation(model, test)
-        print('({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
+        sys.stdout.write('({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model, pd.DataFrame(train_preds), pd.DataFrame(test_preds)
 
@@ -207,9 +207,9 @@ def load_data(path, batch_size):
     """
     dataset = Data(path)
     # for i, (x, y) in enumerate(dataset):
-    #     print(i)
-    #     print(x)
-    #     print(y)
+    #     sys.stdout.write(i)
+    #     sys.stdout.write(x)
+    #     sys.stdout.write(y)
     params = {'batch_size': batch_size,
             'shuffle': False,
             'drop_last': False,
