@@ -46,29 +46,32 @@ def main():
     global MAX_LEN
     global TASK
     
-    sys.stdout.write('Starting')
 
     args = parse_all_args()
     sys.stdout = open(args.out_f, 'w+')
-    sys.stdout.write('Starting')
+    my_print(args.out_f, 'Starting')
     TASK = args.task
     
-    sys.stdout.write('Loading model')
+    my_print(args.out_f, 'Loading model')
     model = get_model(args.model)
 
     MAX_LEN = get_seq_len(args.train)
-    sys.stdout.write('Max seq len = {}\n Loading data...'.format(MAX_LEN))
+    my_print(args.out_f, 'Max seq len = {}\n Loading data...'.format(MAX_LEN))
 
     train_set, train_tmp = load_data(args.train, args.mb)
     test_set,  test_tmp = load_data(args.test, args.mb)
-    sys.stdout.write('Data loaded')
+    my_print(args.out_f, 'Data loaded')
 
-    sys.stdout.write("Starting training")
-    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, model)
-    sys.stdout.write('Finished training \n Outputting results')
+    my_print(args.out_f, "Starting training")
+    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, model, args.out_f)
+    my_print(args.out_f, 'Finished training \n Outputting results')
     train_preds.to_csv("./results/{}_{}_{}_train_preds.csv".format(args.lang, args.task, args.model))
     test_preds.to_csv("./results/{}_{}_{}_test_preds.csv".format(args.lang, args.task, args.model))
     
+def my_print(path, string):
+    with open(path, 'w+') as f:
+        f.write(string)
+
 def get_seq_len(path):
     """
     Get max sequence length for padding later
@@ -113,7 +116,7 @@ def get_model(model_name):
 
     return model
 
-def train(lr, train, test, epochs, verbosity, model):
+def train(lr, train, test, epochs, verbosity, model, out_f):
     """
     Train a model using the specified parameters
 
@@ -151,11 +154,11 @@ def train(lr, train, test, epochs, verbosity, model):
             optimizer.step()
             if i % verbosity == 0:
                 test_acc, preds = validation(model, test)
-                sys.stdout.write('({}.{:03d}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
+                my_print(out_f, '({}.{:03d}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
             i += 1
         train_acc, train_preds = validation(model, train)
         test_acc, test_preds = validation(model, test)
-        sys.stdout.write('({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
+        my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model, pd.DataFrame(train_preds), pd.DataFrame(test_preds)
 
