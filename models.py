@@ -45,9 +45,12 @@ class Data(Dataset):
 def main():
     global MAX_LEN
     global TASK
+    
+    print('Starting')
 
     args = parse_all_args()
     sys.stdout = open(args.out_f, 'w+')
+    print('Starting')
     TASK = args.task
     
     print('Loading model')
@@ -63,8 +66,8 @@ def main():
     print("Starting training")
     model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, model)
     print('Finished training \n Outputting results')
-    train_preds.to_csv("./results/{}_{}_{}_train_preds.csv".format(args.lang, args.task, args.model)))
-    test_preds.to_csv("./results/{}_{}_{}_test_preds.csv".format(args.lang, args.task, args.model)))
+    train_preds.to_csv("./results/{}_{}_{}_train_preds.csv".format(args.lang, args.task, args.model))
+    test_preds.to_csv("./results/{}_{}_{}_test_preds.csv".format(args.lang, args.task, args.model))
     
 def get_seq_len(path):
     """
