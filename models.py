@@ -101,24 +101,18 @@ def get_model(model_name):
     :return model: Pretrained model
     """
     global tokenizer
-    # NOTE: Do we need to use config??
     model = None
     if model_name == 'roberta':
-        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-        # config = RobertaConfig.from_pretrained('roberta-base')
-        model = RobertaForSequenceClassification.from_pretrained('roberta-base')
+        tokenizer = XLMRobertaForSequenceClassification.from_pretrained('xlm-roberta-base')
+        model = XLMRobertaForSequenceClassification.from_pretrained('xlm-roberta-base')
 
     elif model_name == 'xlm':
         tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-100-1280')
-        # config = XLMConfig.from_pretrained('xlm-mlm-100-1280')
         model = XLMForSequenceClassification.from_pretrained('xlm-mlm-100-1280')
 
     elif model_name == 'bert':
         tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
-        # config = BertConfig.from_pretrained('bert-base-multilingual-cased')
         model = BertForSequenceClassification.from_pretrained('bert-base-multilingual-cased')
-
-    # config.num_labels = 2
 
     return model
 
@@ -227,9 +221,6 @@ def load_data(path, batch_size):
     data_loader = DataLoader(dataset, **params)
 
     return data_loader, dataset
-
-# def tok_seq(seq):
-    
 
 def prepare_features(seq):
     global MAX_LEN
