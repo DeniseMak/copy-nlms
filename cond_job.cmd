@@ -5,5 +5,5 @@ log     = exp.log
 notification = always
 transfer_executable = false
 request_GPUs = 1
-request_memory = 2*2048
+request_memory = 4*2048
 queue

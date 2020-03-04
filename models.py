@@ -53,9 +53,15 @@ def main():
     TASK = args.task
     
     my_print(args.out_f, 'Loading model')
-    model = get_model(args.model)
+    if CUDA:
+        my_print(args.out_f, 'Using Cuda')
+    else:
+        my_print(args.out_f, 'why')
 
+    model = get_model(args.model)
+    my_print(args.out_f, 'getting max seq len')
     MAX_LEN = get_seq_len(args.train)
+
     my_print(args.out_f, 'Max seq len = {}\n Loading data...'.format(MAX_LEN))
 
     train_set, train_tmp = load_data(args.train, args.mb)
