@@ -41,7 +41,7 @@ class Data(Dataset):
         label = self.data.labels[index]
         X = prepare_features(sentence)
         y = torch.tensor(int(label))
-        return sentence, X, y
+        return sxfxentence, X, y
 
     def __len__(self):
         return self.len
@@ -134,7 +134,6 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     model = model.to(device)
     model.train()
 
-    correct = 0
     for epoch in range(0, epochs):
         i = 0
         for sents, x, y in train:
@@ -149,6 +148,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             output = model.forward(x)
 
             _, predicted = torch.max(output[0].detach(), 1)
+            
             loss = loss_function(output[0], y)
 
             optimizer.zero_grad()
@@ -160,14 +160,16 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             # del predicted
             # torch.cuda.empty_cache()
 
-            if i % verbosity == 0:
-                test_acc, preds = validation(model, test)
-                my_print(out_f, '({}.{:03d}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
-            i += 1
 
-        train_acc, train_preds = validation(model, train)
-        test_acc, test_preds = validation(model, test)
-        my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
+            # Accuracy
+            if i % verbosity == 0:
+                correct = (output == y).float().sum()
+                print("Epoch {}/{}, Loss: {:.3f}, Accuracy: {:.3f}".format(epoch ,i, loss.item(), correct/x.shape[0]))
+                i += 1
+
+        # train_acc, train_preds = validation(model, train)
+        # test_acc, test_preds = validation(model, test)
+        # my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model, pd.DataFrame(train_preds), pd.DataFrame(test_preds)
 
