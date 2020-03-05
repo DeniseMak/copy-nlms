@@ -136,6 +136,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
 
     for epoch in range(0, epochs):
         i = 0
+        open(args.out_f, "w+").close() # Clear out previous log files
         for sents, x, y in train:
             optimizer.zero_grad()
 
@@ -146,6 +147,9 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             
             output = model.forward(x)
             _, predicted = torch.max(output[0].detach(), 1)
+
+            for i in range(0, len(sents)):
+                my_print(sents[i] + " " + str(predicted[i]))
             
             loss = loss_function(output[0], y)
             loss.backward()
