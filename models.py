@@ -133,11 +133,12 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     test_preds = list()
 
     # Check if Cuda is Available
+    device = torch.device("cpu")
     if CUDA:
         device = torch.device("cuda")
-        model = model.cuda()
 
-    model = model.train()
+    model = model.to(device)
+    model.train()
 
     for epoch in range(0, epochs):
         i = 0
@@ -145,6 +146,9 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             optimizer.zero_grad()
             x = x.squeeze(1)
 
+            x = x.to(device)
+            y = y.to(device)
+            
             output = model.forward(x)
 
             _, predicted = torch.max(output[0].detach(), 1)
@@ -176,13 +180,19 @@ def validation(model, data):
     predictions = torch.LongTensor()
     Y = torch.LongTensor()
 
+    device = torch.device("cpu")
+    if CUDA:
+        device = torch.device("cuda")
+      
+    model = model.to(device)
+    model.eval()
+
     for x, y in data:
 
         x = x.squeeze(1)
 
-        if CUDA:
-            x = x.cuda()
-            y = y.cuda()
+        x = x.to(device)
+        y = y.to(device)
 
         output = model(x)
         _, predicted = torch.max(output[0].detach(), 1)
