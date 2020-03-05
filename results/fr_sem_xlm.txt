@@ -1,1 +1,1 @@
-Starting training
+Loading model

@@ -1,1 +1,2 @@
-Loading model
+Loading modelgetting max seq lenMax seq len = 57
+ Loading data...Data loadedStarting training

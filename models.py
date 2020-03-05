@@ -139,20 +139,15 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         for sents, x, y in train:
             optimizer.zero_grad()
 
-            print("inside")
-
             x = x.squeeze(1)
 
             x = x.to(device)
             y = y.to(device)
             
             output = model.forward(x)
-
             _, predicted = torch.max(output[0].detach(), 1)
             
             loss = loss_function(output[0], y)
-
-            
             loss.backward()
             optimizer.step()
 
@@ -161,12 +156,11 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             # del predicted
             # torch.cuda.empty_cache()
 
-
             # Accuracy
             if i % verbosity == 0:
-                correct = (output == y).float().sum()
+                correct = (predicted == y).float().sum()
                 print("Epoch {}/{}, Loss: {:.3f}, Accuracy: {:.3f}".format(epoch ,i, loss.item(), correct/x.shape[0]))
-                i += 1
+            i += 1
 
         # train_acc, train_preds = validation(model, train)
         # test_acc, test_preds = validation(model, test)
