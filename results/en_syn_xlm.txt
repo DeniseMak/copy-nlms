@@ -1,1 +1,1 @@
-(0.048) Loss: 1.5359656810760498 Test Acc: 0.5115
+Loading model

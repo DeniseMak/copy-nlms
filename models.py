@@ -152,10 +152,10 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             loss.backward()
             optimizer.step()
 
-            # del x
-            # del y
-            # del predicted
-            # torch.cuda.empty_cache()
+            del x
+            del y
+            del predicted
+            torch.cuda.empty_cache()
 
             if i % verbosity == 0:
                 test_acc, preds = validation(model, test)
@@ -201,10 +201,10 @@ def validation(model, data):
         correct += (predicted.cpu() == y.cpu()).sum()
         total += x.shape[0]
 
-        # del x
-        # del y
-        # del predicted
-        # torch.cuda.empty_cache()
+        del x
+        del y
+        del predicted
+        torch.cuda.empty_cache()
 
     accuracy = correct.numpy() / total
 
