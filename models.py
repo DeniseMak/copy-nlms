@@ -25,10 +25,10 @@ MAX_LEN = None
 TASK = None
 
 if torch.cuda.is_available():
-    sys.stdout.write('Using Cuda')
+    print('Using Cuda')
     device = torch.device("cuda")
 else:
-    sys.stdout.write('Using CPU')
+    print('Using CPU')
     device = torch.device("cpu")
 
 class Data(Dataset):
@@ -41,7 +41,7 @@ class Data(Dataset):
         label = self.data.labels[index]
         X = prepare_features(sentence)
         y = torch.tensor(int(label))
-        return X, y
+        return sentence, X, y
 
     def __len__(self):
         return self.len
@@ -52,7 +52,7 @@ def main():
     
 
     args = parse_all_args()
-    sys.stdout = open(args.out_f, 'w+')
+    open(args.out_f, "w+").close() # Clear out previous log files
     TASK = args.task
     
     my_print(args.out_f, 'Loading model')
@@ -73,8 +73,9 @@ def main():
     test_preds.to_csv("./results/{}_{}_{}_test_preds.csv".format(args.lang, args.task, args.model))
     
 def my_print(path, string):
-    with open(path, 'w+') as f:
+    with open(path, 'a+') as f:
         f.write(string)
+        print(string)
 
 def get_seq_len(path):
     """
@@ -136,8 +137,10 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     correct = 0
     for epoch in range(0, epochs):
         i = 0
-        for x, y in train:
-            
+        for sents, x, y in train:
+
+            print("inside")
+
             x = x.squeeze(1)
 
             x = x.to(device)
@@ -152,10 +155,10 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             loss.backward()
             optimizer.step()
 
-            del x
-            del y
-            del predicted
-            torch.cuda.empty_cache()
+            # del x
+            # del y
+            # del predicted
+            # torch.cuda.empty_cache()
 
             if i % verbosity == 0:
                 test_acc, preds = validation(model, test)
@@ -185,7 +188,7 @@ def validation(model, data):
     model = model.to(device)
     model.eval()
 
-    for x, y in data:
+    for sents, x, y in data:
 
         x = x.squeeze(1)
 
@@ -201,10 +204,10 @@ def validation(model, data):
         correct += (predicted.cpu() == y.cpu()).sum()
         total += x.shape[0]
 
-        del x
-        del y
-        del predicted
-        torch.cuda.empty_cache()
+        # del x
+        # del y
+        # del predicted
+        # torch.cuda.empty_cache()
 
     accuracy = correct.numpy() / total
 
@@ -224,6 +227,7 @@ def load_data(path, batch_size):
     Load data for model
     """
     dataset = Data(path)
+
     params = {'batch_size': batch_size,
             'shuffle': False,
             'drop_last': False,
