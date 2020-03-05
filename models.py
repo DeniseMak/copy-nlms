@@ -67,10 +67,8 @@ def main():
     my_print(args.out_f, 'Data loaded')
 
     my_print(args.out_f, "Starting training")
-    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, model, args.out_f)
+    model = train(args.lr, train_set, test_set, args.epochs, args.v, model, args.out_f)
     my_print(args.out_f, 'Finished training \n Outputting results')
-    train_preds.to_csv("./results/{}_{}_{}_train_preds.csv".format(args.lang, args.task, args.model))
-    test_preds.to_csv("./results/{}_{}_{}_test_preds.csv".format(args.lang, args.task, args.model))
     
 def my_print(path, string, verbosity=True):
     with open(path, 'a+') as f:
@@ -134,17 +132,13 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     model = model.to(device)
     model.train()
 
-    print(len(train))
-
     for epoch in range(0, epochs):
         i = 0
-        print(epoch)
         open(out_f, "w+").close() # Clear out previous log files
         for sents, x, y in train:
             
 
             x = x.squeeze(1)
-
             x = x.to(device)
             y = y.to(device)
             
@@ -159,11 +153,6 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
-            # del x
-            # del y
-            # del predicted
-            # torch.cuda.empty_cache()
 
             # Accuracy
             if i % verbosity == 0:
@@ -294,11 +283,11 @@ def parse_all_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-train",type=str,  help = "Path to input data file", \
-        default = "./data/en_syn_sentences_train.txt")
+        default = "./data/en_syn_train.csv")
     parser.add_argument("-task",type=str,  help = "Whether to to the syntactic or semantic task", \
         default = "syn")
     parser.add_argument('-test', help = 'Path to test data file', \
-        type=str, default="./data/en_syn_sentences_test.txt")
+        type=str, default="./data/en_syn_test.csv")
     parser.add_argument("-out_f",type=str,  help = "Path to output acc file", \
         default = "./results/res")
     parser.add_argument("-model",type=str,  help = "Model type to use", default = "xlm")
