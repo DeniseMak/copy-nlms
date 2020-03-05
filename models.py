@@ -144,9 +144,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             
             output = model.forward(x)
             _, predicted = torch.max(output[0].detach(), 1)
-
-            for j in range(0, len(sents)):
-                my_print(out_f, sents[j] + " " + str(predicted[j]), verbosity=False)
+        
             
             loss = loss_function(output[0], y)
 
