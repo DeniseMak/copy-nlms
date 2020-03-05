@@ -114,6 +114,8 @@ def get_model(model_name):
         tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
         model = BertForSequenceClassification.from_pretrained('bert-base-multilingual-cased')
 
+    
+
     return model
 
 def train(lr, train, test, epochs, verbosity, model, out_f):
@@ -132,11 +134,14 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     model = model.to(device)
     model.train()
 
+    print(len(train))
+
     for epoch in range(0, epochs):
         i = 0
+        print(epoch)
         open(out_f, "w+").close() # Clear out previous log files
         for sents, x, y in train:
-            optimizer.zero_grad()
+            
 
             x = x.squeeze(1)
 
@@ -146,10 +151,12 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             output = model.forward(x)
             _, predicted = torch.max(output[0].detach(), 1)
 
-            for i in range(0, len(sents)):
-                my_print(out_f, sents[i] + " " + str(predicted[i]), verbosity=True)
+            for j in range(0, len(sents)):
+                my_print(out_f, sents[j] + " " + str(predicted[j]), verbosity=False)
             
             loss = loss_function(output[0], y)
+
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 

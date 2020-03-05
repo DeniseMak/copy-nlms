@@ -14,4 +14,4 @@ for task in tasks:
         for lang in langs:
             with open('test', 'w+') as f:
                 f.write('Starting Training: \nTask: {}, Model: {}, Lang: {}'.format(task.upper(), model.upper(), lang.upper()))
-            os.system('python ./models.py -v 1 -train ./data/{}_{}_train.csv -test ./data/{}_{}_test.csv -model {} -epochs 10 -mb 16 -out_f ./results/{}_{}_{}.txt'.format(lang, task, lang, task, model, lang, task, model))
+            os.system('python ./models.py -v 1 -train ./data/{}_{}_train.csv -test ./data/{}_{}_test.csv -model {} -epochs 10 -mb 1 -out_f ./results/{}_{}_{}.txt'.format(lang, task, lang, task, model, lang, task, model))
