@@ -72,9 +72,10 @@ def main():
     train_preds.to_csv("./results/{}_{}_{}_train_preds.csv".format(args.lang, args.task, args.model))
     test_preds.to_csv("./results/{}_{}_{}_test_preds.csv".format(args.lang, args.task, args.model))
     
-def my_print(path, string):
+def my_print(path, string, verbosity=True):
     with open(path, 'a+') as f:
         f.write(string)
+    if verbosity:
         print(string)
 
 def get_seq_len(path):
@@ -128,15 +129,12 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
-    # train_preds = list()
-    # test_preds = list()
-
     model = model.to(device)
     model.train()
 
     for epoch in range(0, epochs):
         i = 0
-        open(args.out_f, "w+").close() # Clear out previous log files
+        open(out_f, "w+").close() # Clear out previous log files
         for sents, x, y in train:
             optimizer.zero_grad()
 
@@ -149,7 +147,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             _, predicted = torch.max(output[0].detach(), 1)
 
             for i in range(0, len(sents)):
-                my_print(sents[i] + " " + str(predicted[i]))
+                my_print(out_f, sents[i] + " " + str(predicted[i]), verbosity=True)
             
             loss = loss_function(output[0], y)
             loss.backward()
@@ -170,7 +168,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         # test_acc, test_preds = validation(model, test)
         # my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
-    return model, pd.DataFrame(train_preds), pd.DataFrame(test_preds)
+    return model
 
 def validation(model, data):
     """
