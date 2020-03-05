@@ -41,7 +41,7 @@ class Data(Dataset):
         label = self.data.labels[index]
         X = prepare_features(sentence)
         y = torch.tensor(int(label))
-        return sxfxentence, X, y
+        return sentence, X, y
 
     def __len__(self):
         return self.len
@@ -137,6 +137,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     for epoch in range(0, epochs):
         i = 0
         for sents, x, y in train:
+            optimizer.zero_grad()
 
             print("inside")
 
@@ -151,7 +152,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             
             loss = loss_function(output[0], y)
 
-            optimizer.zero_grad()
+            
             loss.backward()
             optimizer.step()
 
