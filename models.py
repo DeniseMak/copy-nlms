@@ -20,12 +20,16 @@ from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
 from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
 
 tokenizer = None
+device = None
 MAX_LEN = None
 TASK = None
 
-CUDA = torch.cuda.is_available()
-if CUDA:
+if torch.cuda.is_available():
     sys.stdout.write('Using Cuda')
+    device = torch.device("cuda")
+else:
+    sys.stdout.write('Using CPU')
+    device = torch.device("cpu")
 
 class Data(Dataset):
     def __init__(self, path):
@@ -49,15 +53,9 @@ def main():
 
     args = parse_all_args()
     sys.stdout = open(args.out_f, 'w+')
-    my_print(args.out_f, 'Starting')
     TASK = args.task
     
     my_print(args.out_f, 'Loading model')
-    if CUDA:
-        my_print(args.out_f, 'Using Cuda')
-    else:
-        my_print(args.out_f, 'why')
-
     model = get_model(args.model)
     my_print(args.out_f, 'getting max seq len')
     MAX_LEN = get_seq_len(args.train)
@@ -129,21 +127,17 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
-    train_preds = list()
-    test_preds = list()
-
-    # Check if Cuda is Available
-    device = torch.device("cpu")
-    if CUDA:
-        device = torch.device("cuda")
+    # train_preds = list()
+    # test_preds = list()
 
     model = model.to(device)
     model.train()
 
+    correct = 0
     for epoch in range(0, epochs):
         i = 0
         for x, y in train:
-            optimizer.zero_grad()
+            
             x = x.squeeze(1)
 
             x = x.to(device)
@@ -152,14 +146,22 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             output = model.forward(x)
 
             _, predicted = torch.max(output[0].detach(), 1)
-
             loss = loss_function(output[0], y)
+
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+
+            # del x
+            # del y
+            # del predicted
+            # torch.cuda.empty_cache()
+
             if i % verbosity == 0:
                 test_acc, preds = validation(model, test)
                 my_print(out_f, '({}.{:03d}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
             i += 1
+
         train_acc, train_preds = validation(model, train)
         test_acc, test_preds = validation(model, test)
         my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
@@ -176,14 +178,10 @@ def validation(model, data):
     """
     correct = 0
     total = 0
-
-    predictions = torch.LongTensor()
-    Y = torch.LongTensor()
-
-    device = torch.device("cpu")
-    if CUDA:
-        device = torch.device("cuda")
       
+    predictions = (torch.LongTensor()).to(device)
+    Y = (torch.LongTensor()).to(device)
+
     model = model.to(device)
     model.eval()
 
@@ -195,11 +193,18 @@ def validation(model, data):
         y = y.to(device)
 
         output = model(x)
+
         _, predicted = torch.max(output[0].detach(), 1)
+        predicted = predicted.to(device)
         predictions = torch.cat((predictions, predicted))
         Y = torch.cat((Y, y))
         correct += (predicted.cpu() == y.cpu()).sum()
         total += x.shape[0]
+
+        # del x
+        # del y
+        # del predicted
+        # torch.cuda.empty_cache()
 
     accuracy = correct.numpy() / total
 
@@ -219,10 +224,6 @@ def load_data(path, batch_size):
     Load data for model
     """
     dataset = Data(path)
-    # for i, (x, y) in enumerate(dataset):
-    #     sys.stdout.write(i)
-    #     sys.stdout.write(x)
-    #     sys.stdout.write(y)
     params = {'batch_size': batch_size,
             'shuffle': False,
             'drop_last': False,
@@ -249,11 +250,6 @@ def prepare_features(seq):
 
         tokens.append(tokenizer.sep_token)
 
-    # Truncate
-    # if len(tokens) > MAX_LEN:
-    #     tokens = tokens_a[0:(MAX_LEN)]
-    #     tokens.append(tokenizer.sep_token)
-
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
 
     # Zero-pad sequence length
@@ -271,8 +267,7 @@ def get_class(num, model, tokenizer):
     """
     model.eval()
     num, _ = prepare_features(num)
-    if CUDA:
-        num = num.cuda()
+    num = num.to(device)
     output = model(num)[0]
     _, pred_label = torch.max(output.data, 1)
 

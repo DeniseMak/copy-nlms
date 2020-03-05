@@ -1,1 +1,1 @@
-Starting training
+(0.001) Loss: 39.41762161254883 Test Acc: 0.4855
