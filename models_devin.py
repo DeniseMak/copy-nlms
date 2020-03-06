@@ -5,6 +5,7 @@ import json
 import os
 import random
 
+import pandas as pd
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
@@ -239,7 +240,7 @@ def evaluate(args, model, tokenizer, prefix=""):
 
     results = {}
     for eval_task, eval_output_dir in zip(eval_task_names, eval_outputs_dirs):
-        eval_dataset = load_and_cache_examples(args, eval_task, tokenizer, evaluate=True)
+        eval_dataset = load_data(args, eval_task, tokenizer, evaluate=True)
 
         if not os.path.exists(eval_output_dir) and args.local_rank in [-1, 0]:
             os.makedirs(eval_output_dir)
@@ -301,61 +302,49 @@ def evaluate(args, model, tokenizer, prefix=""):
     return results
 
 
-def load_and_cache_examples(args, task, tokenizer, evaluate=False):
-    if args.local_rank not in [-1, 0] and not evaluate:
-        torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
+def load_data(args, tokenizer, evaluate=False):
 
-    processor = processors[task]()
-    output_mode = output_modes[task]
-    # Load data features from cache or dataset file
-    cached_features_file = os.path.join(
-        args.data_dir,
-        "cached_{}_{}_{}_{}".format(
-            "dev" if evaluate else "train",
-            list(filter(None, args.model_name_or_path.split("/"))).pop(),
-            str(args.max_seq_length),
-            str(task),
-        ),
-    )
-    if os.path.exists(cached_features_file) and not args.overwrite_cache:
-        logger.info("Loading features from cached file %s", cached_features_file)
-        features = torch.load(cached_features_file)
+    # Open as pandas csv    
+    if evaluate:
+        data = pd.read_csv(args.data_dir + "/" + args.lang + "_" + args.task_name + "_" + "test.csv").reset_index()
     else:
-        logger.info("Creating features from dataset file at %s", args.data_dir)
-        label_list = processor.get_labels()
-        if task in ["mnli", "mnli-mm"] and args.model_type in ["roberta", "xlmroberta"]:
-            # HACK(label indices are swapped in RoBERTa pretrained model)
-            label_list[1], label_list[2] = label_list[2], label_list[1]
-        examples = (
-            processor.get_dev_examples(args.data_dir) if evaluate else processor.get_train_examples(args.data_dir)
-        )
-        features = convert_examples_to_features(
-            examples,
-            tokenizer,
-            label_list=label_list,
-            max_length=args.max_seq_length,
-            output_mode=output_mode,
-            pad_on_left=bool(args.model_type in ["xlnet"]),  # pad on the left for xlnet
-            pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
-            pad_token_segment_id=4 if args.model_type in ["xlnet"] else 0,
-        )
-        if args.local_rank in [-1, 0]:
-            logger.info("Saving features into cached file %s", cached_features_file)
-            torch.save(features, cached_features_file)
+        data = pd.read_csv(args.data_dir + "/" + args.lang + "_" + args.task_name + "_" + "train.csv").reset_index()
 
-    if args.local_rank == 0 and not evaluate:
-        torch.distributed.barrier()  # Make sure only the first process in distributed training process the dataset, and the others will use the cache
+    # Get max sequence length of data
+    max_len = 0
+    for row in data['sents']:
+        toks = tokenizer.tokenize(row)
+        curr_len = len(tokenizer.convert_tokens_to_ids(toks))
+        if curr_len > max_len:
+            max_len = curr_len
+    max_len += 2
 
-    # Convert to Tensors and build dataset
-    all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-    all_attention_mask = torch.tensor([f.attention_mask for f in features], dtype=torch.long)
-    all_token_type_ids = torch.tensor([f.token_type_ids for f in features], dtype=torch.long)
-    if output_mode == "classification":
-        all_labels = torch.tensor([f.label for f in features], dtype=torch.long)
-    elif output_mode == "regression":
-        all_labels = torch.tensor([f.label for f in features], dtype=torch.float)
+    # Turn each sentence into vector x, add to X
+    X = []
+    for sentence in data['sents']:
+        seq = sentence.split(';') # Works for both syn and sem tasks
+        tokens = [tokenizer.cls_token]
+        for s in seq:
+            tokens_a = tokenizer.tokenize(s)
+            for token in tokens_a:
+                tokens.append(token)
+            tokens.append(tokenizer.sep_token)
+        x = tokenizer.convert_tokens_to_ids(tokens) # Vector representation of sentence
+        while len(x) < max_len: # Zero-pad sequence length
+            x.append(0)
+        
+        # Append sentence vector to total examples X
+        X.append(x)
+    
+    # Convert to tensor
+    X = torch.tensor(X).unsqueeze(0)
 
-    dataset = TensorDataset(all_input_ids, all_attention_mask, all_token_type_ids, all_labels)
+    # Get Y
+    Y = data['labels']
+    Y = torch.tensor(Y).unsqueeze(0)
+
+    dataset = TensorDataset(X, Y)
+
     return dataset
 
 
@@ -407,6 +396,7 @@ def parse_args():
         type=str,
         help="Pretrained tokenizer name or path if not the same as model_name",
     )
+    parser.add_argument("--lang", default = "en", type=str, help = "Language to run the task on")
     parser.add_argument("--learning_rate", default=5e-5, type=float, help="The initial learning rate for Adam.")
     parser.add_argument("--num_epochs", default=3.0, type=float, help="Total number of training epochs to perform.")
     parser.add_argument("--seed", type=int, default=42, help="random seed for initialization")
@@ -455,46 +445,45 @@ def main():
     model = model.to(device)
 
     # Training
-    train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
-    global_step, tr_loss = train(args, train_dataset, model, tokenizer)
+    train_dataset = load_data(args, tokenizer, evaluate=False)
+    # global_step, tr_loss = train(args, train_dataset, model, tokenizer)
 
     # Save a trained model, configuration and tokenizer using `save_pretrained()`.
     # They can then be reloaded using `from_pretrained()`
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
-    model.save_pretrained(args.output_dir)
-    tokenizer.save_pretrained(args.output_dir)
+    # if not os.path.exists(args.output_dir):
+    #     os.makedirs(args.output_dir)
+    # model.save_pretrained(args.output_dir)
+    # tokenizer.save_pretrained(args.output_dir)
 
-    # Save training arguments together with the trained model
-    torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
+    # # Save training arguments together with the trained model
+    # torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
 
     # # Load a trained model and vocabulary that you have fine-tuned
     # model = model_class.from_pretrained(args.output_dir)
     # tokenizer = tokenizer_class.from_pretrained(args.output_dir)
     # model.to(args.device)
 
-    # Evaluation
-    results = {}
-    if args.do_eval and args.local_rank in [-1, 0]:
-        tokenizer = tokenizer_class.from_pretrained(args.output_dir, do_lower_case=args.do_lower_case)
-        checkpoints = [args.output_dir]
-        if args.eval_all_checkpoints:
-            checkpoints = list(
-                os.path.dirname(c) for c in sorted(glob.glob(args.output_dir + "/**/" + WEIGHTS_NAME, recursive=True))
-            )
-            logging.getLogger("transformers.modeling_utils").setLevel(logging.WARN)  # Reduce logging
-        logger.info("Evaluate the following checkpoints: %s", checkpoints)
-        for checkpoint in checkpoints:
-            global_step = checkpoint.split("-")[-1] if len(checkpoints) > 1 else ""
-            prefix = checkpoint.split("/")[-1] if checkpoint.find("checkpoint") != -1 else ""
+    # # Evaluation
+    # results = {}
+    # tokenizer = tokenizer_class.from_pretrained(args.output_dir, do_lower_case=args.do_lower_case)
+    # checkpoints = [args.output_dir]
+    # if args.eval_all_checkpoints:
+    #     checkpoints = list(
+    #         os.path.dirname(c) for c in sorted(glob.glob(args.output_dir + "/**/" + WEIGHTS_NAME, recursive=True))
+    #     )
+    #     logging.getLogger("transformers.modeling_utils").setLevel(logging.WARN)  # Reduce logging
+    # logger.info("Evaluate the following checkpoints: %s", checkpoints)
+    # for checkpoint in checkpoints:
+    #         global_step = checkpoint.split("-")[-1] if len(checkpoints) > 1 else ""
+    #         prefix = checkpoint.split("/")[-1] if checkpoint.find("checkpoint") != -1 else ""
 
-            model = model_class.from_pretrained(checkpoint)
-            model.to(args.device)
-            result = evaluate(args, model, tokenizer, prefix=prefix)
-            result = dict((k + "_{}".format(global_step), v) for k, v in result.items())
-            results.update(result)
+    #         model = model_class.from_pretrained(checkpoint)
+    #         model.to(args.device)
+    #         result = evaluate(args, model, tokenizer, prefix=prefix)
+    #         result = dict((k + "_{}".format(global_step), v) for k, v in result.items())
+    #         results.update(result)
 
-    return results
+    # return results
 
 
 if __name__ == "__main__":
