@@ -29,30 +29,20 @@ from transformers import (
     XLMTokenizer
 )
 
-ALL_MODELS = sum(
-    (
-        tuple(conf.pretrained_config_archive_map.keys())
-        for conf in (
-            BertConfig,
-            XLMConfig,
-            XLMRobertaConfig,
-        )
-    ),
-    (),
-)
-
 MODEL_CLASSES = {
     "bert": (BertConfig, BertForSequenceClassification, BertTokenizer),
     "xlm": (XLMConfig, XLMForSequenceClassification, XLMTokenizer),
     "xlmroberta": (XLMRobertaConfig, XLMRobertaForSequenceClassification, XLMRobertaTokenizer),
 }
 
+# Tasks and their labels
+TASKS = {"syn" : [0, 1], "sem" : [0,1,2]}
 
-def set_seed(args):
+def set_seed(args, cuda):
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
-    if args.n_gpu > 0:
+    if cuda:
         torch.cuda.manual_seed_all(args.seed)
 
 
@@ -369,7 +359,7 @@ def load_and_cache_examples(args, task, tokenizer, evaluate=False):
     return dataset
 
 
-def main():
+def parse_args():
     parser = argparse.ArgumentParser()
 
     # Parameters
@@ -378,7 +368,7 @@ def main():
         default=None,
         type=str,
         required=True,
-        help="The input data dir. Should contain the .tsv files (or other data files) for the task.",
+        help="The input data dir. Should contain the .csv files for the task.",
     )
     parser.add_argument(
         "--model_type",
@@ -388,105 +378,100 @@ def main():
         help="Model type selected in the list: " + ", ".join(MODEL_CLASSES.keys()),
     )
     parser.add_argument(
-        "--model_name_or_path",
+        "--model_string",
         default=None,
         type=str,
         required=True,
-        help="Path to pre-trained model or shortcut name selected in the list: " + ", ".join(ALL_MODELS),
+        help="Path to pre-trained model or name"
     )
     parser.add_argument(
         "--task_name",
         default=None,
         type=str,
         required=True,
-        help="The name of the task to train selected in the list: " + ", ".join(processors.keys()),
+        help="The name of the task to train on"
     )
     parser.add_argument(
         "--output_dir",
         default=None,
         type=str,
         required=True,
-        help="The output directory where the model predictions and checkpoints will be written.",
+        help="The output directory where the model predictions will be written.",
+    )
+    parser.add_argument(
+        "--config_name", default="", type=str, help="Pretrained config name or path if not the same as model_name",
+    )
+    parser.add_argument(
+        "--tokenizer_name",
+        default="",
+        type=str,
+        help="Pretrained tokenizer name or path if not the same as model_name",
     )
     parser.add_argument("--learning_rate", default=5e-5, type=float, help="The initial learning rate for Adam.")
     parser.add_argument("--num_epochs", default=3.0, type=float, help="Total number of training epochs to perform.")
     parser.add_argument("--seed", type=int, default=42, help="random seed for initialization")
-    args = parser.parse_args()
+    parser.add_argument("--batch_size", type=int, default=8, help="Batch size")
+    
+    return parser.parse_args()
+
+
+def main():
+
+    # Get arguments
+    args = parse_args()
 
     # Setup CUDA, GPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Set seed
-    set_seed(args)
+    # Set random seed
+    set_seed(args, device=="cuda")
 
-    # Prepare GLUE task
-    args.task_name = args.task_name.lower()
-    if args.task_name not in processors:
+    # Prepare task
+    if args.task_name not in TASKS:
         raise ValueError("Task not found: %s" % (args.task_name))
-    processor = processors[args.task_name]()
-    args.output_mode = output_modes[args.task_name]
-    label_list = processor.get_labels()
+    label_list = TASKS[args.task_name]
     num_labels = len(label_list)
 
-    # Load pretrained model and tokenizer
-    if args.local_rank not in [-1, 0]:
-        torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
-
-    args.model_type = args.model_type.lower()
+    # Get classes
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
+
+    # Set config
     config = config_class.from_pretrained(
-        args.config_name if args.config_name else args.model_name_or_path,
+        args.config_name if args.config_name else args.model_string,
         num_labels=num_labels,
-        finetuning_task=args.task_name,
-        cache_dir=args.cache_dir if args.cache_dir else None,
+        finetuning_task=args.task_name
     )
+    
+    # Set tokenizer
     tokenizer = tokenizer_class.from_pretrained(
-        args.tokenizer_name if args.tokenizer_name else args.model_name_or_path,
-        do_lower_case=args.do_lower_case,
-        cache_dir=args.cache_dir if args.cache_dir else None,
+        args.tokenizer_name if args.tokenizer_name else args.model_string
     )
+
+    # Set model
     model = model_class.from_pretrained(
-        args.model_name_or_path,
-        from_tf=bool(".ckpt" in args.model_name_or_path),
-        config=config,
-        cache_dir=args.cache_dir if args.cache_dir else None,
+        args.model_string,
+        config=config
     )
-
-    if args.local_rank == 0:
-        torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab
-
-    model.to(args.device)
-
-    logger.info("Training/evaluation parameters %s", args)
+    model = model.to(device)
 
     # Training
-    if args.do_train:
-        train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
-        global_step, tr_loss = train(args, train_dataset, model, tokenizer)
-        logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
+    train_dataset = load_and_cache_examples(args, args.task_name, tokenizer, evaluate=False)
+    global_step, tr_loss = train(args, train_dataset, model, tokenizer)
 
-    # Saving best-practices: if you use defaults names for the model, you can reload it using from_pretrained()
-    if args.do_train and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
-        # Create output directory if needed
-        if not os.path.exists(args.output_dir) and args.local_rank in [-1, 0]:
-            os.makedirs(args.output_dir)
+    # Save a trained model, configuration and tokenizer using `save_pretrained()`.
+    # They can then be reloaded using `from_pretrained()`
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    model.save_pretrained(args.output_dir)
+    tokenizer.save_pretrained(args.output_dir)
 
-        logger.info("Saving model checkpoint to %s", args.output_dir)
-        # Save a trained model, configuration and tokenizer using `save_pretrained()`.
-        # They can then be reloaded using `from_pretrained()`
-        model_to_save = (
-            model.module if hasattr(model, "module") else model
-        )  # Take care of distributed/parallel training
-        model_to_save.save_pretrained(args.output_dir)
-        tokenizer.save_pretrained(args.output_dir)
+    # Save training arguments together with the trained model
+    torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
 
-        # Good practice: save your training arguments together with the trained model
-        torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
-
-        # Load a trained model and vocabulary that you have fine-tuned
-        model = model_class.from_pretrained(args.output_dir)
-        tokenizer = tokenizer_class.from_pretrained(args.output_dir)
-        model.to(args.device)
+    # # Load a trained model and vocabulary that you have fine-tuned
+    # model = model_class.from_pretrained(args.output_dir)
+    # tokenizer = tokenizer_class.from_pretrained(args.output_dir)
+    # model.to(args.device)
 
     # Evaluation
     results = {}
@@ -513,3 +498,4 @@ def main():
 
 
 if __name__ == "__main__":
+    main()
