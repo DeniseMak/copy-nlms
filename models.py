@@ -116,8 +116,8 @@ def get_model(model_name):
     global tokenizer
     model = None
     if model_name == 'roberta':
-        tokenizer = XLMRobertaForSequenceClassification.from_pretrained('xlm-roberta-base')
-        model = XLMRobertaForSequenceClassification.from_pretrained('xlm-roberta-base')
+        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+        model = RobertaForSequenceClassification.from_pretrained('roberta-base')
 
     elif model_name == 'xlm':
         tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-100-1280')
@@ -132,8 +132,8 @@ def get_model(model_name):
     
     elif model_name == 'd-bert':
         # distilbert-base-multilingual-cased
-        tokenizer = DistlBertTokenizer.from_pretrained('distilbert-base-multilingual-cased')
-        model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-multilingual-cased')
+        tokenizer = DistilBertTokenizer.from_pretrained('roberta-base')
+        model = DistilBertForSequenceClassification.from_pretrained('roberta-base')
 
 
     return model
