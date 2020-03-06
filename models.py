@@ -1,3 +1,5 @@
+print('plz')
+
 import pandas as pd
 import argparse
 import numpy as np
@@ -24,6 +26,8 @@ device = None
 MAX_LEN = None
 TASK = None
 
+print('asdf')
+
 if torch.cuda.is_available():
     print('Using Cuda')
     device = torch.device("cuda")
@@ -49,12 +53,23 @@ class Data(Dataset):
 def main():
     global MAX_LEN
     global TASK
-    
+    global device
 
     args = parse_all_args()
     open(args.out_f, "w+").close() # Clear out previous log files
     TASK = args.task
     
+    if torch.cuda.is_available():
+        my_print(args.out_f,'Using Cuda')
+        device = torch.device("cuda")
+    else:
+        my_print(args.out_f,'Using CPU')
+        device = torch.device("cpu")
+   
+    #model = BertForSequenceClassification.from_pretrained('bert-base-multilingual-cased')
+    #model.save_pretrained('./models/bert')
+    #exit()
+ 
     my_print(args.out_f, 'Loading model')
     model = get_model(args.model)
     my_print(args.out_f, 'getting max seq len')
@@ -109,10 +124,15 @@ def get_model(model_name):
         model = XLMForSequenceClassification.from_pretrained('xlm-mlm-100-1280')
 
     elif model_name == 'bert':
-        tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
-        model = BertForSequenceClassification.from_pretrained('bert-base-multilingual-cased')
-
+        print('bert tokenzier')
+        tokenizer = BertTokenizer.from_pretrained('/home2/lexilz/models/multi_cased_L-12_H-768_A-12/pytorch_model')
+        print('yeet')
+        model = BertForSequenceClassification.from_pretrained('./models/bert')
+        print('rip')
     
+    elif model_name == 'd-bert':
+       distilbert-base-multilingual-cased
+
 
     return model
 
@@ -136,7 +156,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         i = 0
         open(out_f, "w+").close() # Clear out previous log files
         for sents, x, y in train:
-            
+            optimizer.zero_grad()
             x = x.squeeze(1)
             x = x.to(device)
             y = y.to(device)
@@ -144,6 +164,9 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             output = model(x, labels=y)
             loss = output[0]
             logits = output[1]
+            loss.backward()
+            optimizer.step()
+        
             _, predicted = torch.max(logits.detach(), 1)
 
             # Accuracy
