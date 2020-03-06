@@ -20,12 +20,16 @@ from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
 from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
 
 tokenizer = None
+device = None
 MAX_LEN = None
 TASK = None
 
-CUDA = torch.cuda.is_available()
-if CUDA:
-    sys.stdout.write('Using Cuda')
+if torch.cuda.is_available():
+    print('Using Cuda')
+    device = torch.device("cuda")
+else:
+    print('Using CPU')
+    device = torch.device("cpu")
 
 class Data(Dataset):
     def __init__(self, path):
@@ -37,7 +41,7 @@ class Data(Dataset):
         label = self.data.labels[index]
         X = prepare_features(sentence)
         y = torch.tensor(int(label))
-        return X, y
+        return sentence, X, y
 
     def __len__(self):
         return self.len
@@ -48,16 +52,10 @@ def main():
     
 
     args = parse_all_args()
-    sys.stdout = open(args.out_f, 'w+')
-    my_print(args.out_f, 'Starting')
+    open(args.out_f, "w+").close() # Clear out previous log files
     TASK = args.task
     
     my_print(args.out_f, 'Loading model')
-    if CUDA:
-        my_print(args.out_f, 'Using Cuda')
-    else:
-        my_print(args.out_f, 'why')
-
     model = get_model(args.model)
     my_print(args.out_f, 'getting max seq len')
     MAX_LEN = get_seq_len(args.train)
@@ -69,14 +67,14 @@ def main():
     my_print(args.out_f, 'Data loaded')
 
     my_print(args.out_f, "Starting training")
-    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, model, args.out_f)
+    model = train(args.lr, train_set, test_set, args.epochs, args.v, model, args.out_f)
     my_print(args.out_f, 'Finished training \n Outputting results')
-    train_preds.to_csv("./results/{}_{}_{}_train_preds.csv".format(args.lang, args.task, args.model))
-    test_preds.to_csv("./results/{}_{}_{}_test_preds.csv".format(args.lang, args.task, args.model))
     
-def my_print(path, string):
-    with open(path, 'w+') as f:
+def my_print(path, string, verbosity=True):
+    with open(path, 'a+') as f:
         f.write(string)
+    if verbosity:
+        print(string)
 
 def get_seq_len(path):
     """
@@ -101,24 +99,20 @@ def get_model(model_name):
     :return model: Pretrained model
     """
     global tokenizer
-    # NOTE: Do we need to use config??
     model = None
     if model_name == 'roberta':
-        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-        # config = RobertaConfig.from_pretrained('roberta-base')
-        model = RobertaForSequenceClassification.from_pretrained('roberta-base')
+        tokenizer = XLMRobertaForSequenceClassification.from_pretrained('xlm-roberta-base')
+        model = XLMRobertaForSequenceClassification.from_pretrained('xlm-roberta-base')
 
     elif model_name == 'xlm':
         tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-100-1280')
-        # config = XLMConfig.from_pretrained('xlm-mlm-100-1280')
         model = XLMForSequenceClassification.from_pretrained('xlm-mlm-100-1280')
 
     elif model_name == 'bert':
         tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
-        # config = BertConfig.from_pretrained('bert-base-multilingual-cased')
         model = BertForSequenceClassification.from_pretrained('bert-base-multilingual-cased')
 
-    # config.num_labels = 2
+    
 
     return model
 
@@ -135,38 +129,33 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
-    train_preds = list()
-    test_preds = list()
-
-    # Check if Cuda is Available
-    if CUDA:
-        device = torch.device("cuda")
-        model = model.cuda()
-
-    model = model.train()
+    model = model.to(device)
+    model.train()
 
     for epoch in range(0, epochs):
         i = 0
-        for x, y in train:
-            optimizer.zero_grad()
+        open(out_f, "w+").close() # Clear out previous log files
+        for sents, x, y in train:
+            
             x = x.squeeze(1)
+            x = x.to(device)
+            y = y.to(device)
+            
+            output = model(x, labels=y)
+            loss = output[0]
+            logits = output[1]
+            _, predicted = torch.max(logits.detach(), 1)
 
-            output = model.forward(x)
-
-            _, predicted = torch.max(output[0].detach(), 1)
-
-            loss = loss_function(output[0], y)
-            loss.backward()
-            optimizer.step()
+            # Accuracy
             if i % verbosity == 0:
-                test_acc, preds = validation(model, test)
-                my_print(out_f, '({}.{:03d}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
+                correct = (predicted == y).float().sum()
+                print("Epoch {}/{}, Loss: {:.3f}, Accuracy: {:.3f}".format(epoch ,i, loss.item(), correct/x.shape[0]))
             i += 1
-        train_acc, train_preds = validation(model, train)
-        test_acc, test_preds = validation(model, test)
-        my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
-    return model, pd.DataFrame(train_preds), pd.DataFrame(test_preds)
+        # Get accuracy for epoch
+        # my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
+
+    return model
 
 def validation(model, data):
     """
@@ -178,24 +167,33 @@ def validation(model, data):
     """
     correct = 0
     total = 0
+      
+    predictions = (torch.LongTensor()).to(device)
+    Y = (torch.LongTensor()).to(device)
 
-    predictions = torch.LongTensor()
-    Y = torch.LongTensor()
+    model = model.to(device)
+    model.eval()
 
-    for x, y in data:
+    for sents, x, y in data:
 
         x = x.squeeze(1)
 
-        if CUDA:
-            x = x.cuda()
-            y = y.cuda()
+        x = x.to(device)
+        y = y.to(device)
 
         output = model(x)
+
         _, predicted = torch.max(output[0].detach(), 1)
+        predicted = predicted.to(device)
         predictions = torch.cat((predictions, predicted))
         Y = torch.cat((Y, y))
         correct += (predicted.cpu() == y.cpu()).sum()
         total += x.shape[0]
+
+        # del x
+        # del y
+        # del predicted
+        # torch.cuda.empty_cache()
 
     accuracy = correct.numpy() / total
 
@@ -215,10 +213,7 @@ def load_data(path, batch_size):
     Load data for model
     """
     dataset = Data(path)
-    # for i, (x, y) in enumerate(dataset):
-    #     sys.stdout.write(i)
-    #     sys.stdout.write(x)
-    #     sys.stdout.write(y)
+
     params = {'batch_size': batch_size,
             'shuffle': False,
             'drop_last': False,
@@ -227,9 +222,6 @@ def load_data(path, batch_size):
     data_loader = DataLoader(dataset, **params)
 
     return data_loader, dataset
-
-# def tok_seq(seq):
-    
 
 def prepare_features(seq):
     global MAX_LEN
@@ -248,11 +240,6 @@ def prepare_features(seq):
 
         tokens.append(tokenizer.sep_token)
 
-    # Truncate
-    # if len(tokens) > MAX_LEN:
-    #     tokens = tokens_a[0:(MAX_LEN)]
-    #     tokens.append(tokenizer.sep_token)
-
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
 
     # Zero-pad sequence length
@@ -270,8 +257,7 @@ def get_class(num, model, tokenizer):
     """
     model.eval()
     num, _ = prepare_features(num)
-    if CUDA:
-        num = num.cuda()
+    num = num.to(device)
     output = model(num)[0]
     _, pred_label = torch.max(output.data, 1)
 
@@ -288,11 +274,11 @@ def parse_all_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-train",type=str,  help = "Path to input data file", \
-        default = "./data/en_syn_sentences_train.txt")
+        default = "./data/en_syn_train.csv")
     parser.add_argument("-task",type=str,  help = "Whether to to the syntactic or semantic task", \
         default = "syn")
     parser.add_argument('-test', help = 'Path to test data file', \
-        type=str, default="./data/en_syn_sentences_test.txt")
+        type=str, default="./data/en_syn_test.csv")
     parser.add_argument("-out_f",type=str,  help = "Path to output acc file", \
         default = "./results/res")
     parser.add_argument("-model",type=str,  help = "Model type to use", default = "xlm")
