@@ -137,20 +137,14 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         open(out_f, "w+").close() # Clear out previous log files
         for sents, x, y in train:
             
-
             x = x.squeeze(1)
             x = x.to(device)
             y = y.to(device)
             
-            output = model.forward(x)
-            _, predicted = torch.max(output[0].detach(), 1)
-        
-            
-            loss = loss_function(output[0], y)
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            output = model(x, labels=y)
+            loss = output[0]
+            logits = output[1]
+            _, predicted = torch.max(logits.detach(), 1)
 
             # Accuracy
             if i % verbosity == 0:
@@ -158,8 +152,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
                 print("Epoch {}/{}, Loss: {:.3f}, Accuracy: {:.3f}".format(epoch ,i, loss.item(), correct/x.shape[0]))
             i += 1
 
-        # train_acc, train_preds = validation(model, train)
-        # test_acc, test_preds = validation(model, test)
+        # Get accuracy for epoch
         # my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model
