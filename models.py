@@ -1,10 +1,7 @@
-print('plz')
-
 import pandas as pd
 import argparse
 import numpy as np
 import json
-import sys
 import re
 from tqdm import tqdm_notebook
 from uuid import uuid4
@@ -16,96 +13,50 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
+# from tensorflow import data_unti
 from transformers import RobertaModel, RobertaTokenizer
 from transformers import RobertaForSequenceClassification, RobertaConfig
 from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
-from transformers import DistilBertModel, DistilBertTokenizer, DistilBertConfig, DistilBertForSequenceClassification
+from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
+
 
 tokenizer = None
-device = None
-MAX_LEN = None
-TASK = None
+CUDA = torch.cuda.is_available()
+if CUDA:
+    print('Cuda is availible')
 
-print('asdf')
+class Pairs(Dataset):
+    def __init__(self, dataframe):
+        self.len = len(dataframe)
+        self.data = dataframe
 
-if torch.cuda.is_available():
-    print('Using Cuda')
-    device = torch.device("cuda")
-else:
-    print('Using CPU')
-    device = torch.device("cpu")
-
-class Data(Dataset):
-    def __init__(self, path):
-        self.data = pd.read_csv(path).reset_index()
-        self.len = len(self.data)
-        
     def __getitem__(self, index):
-        sentence = self.data.sents[index]
-        label = self.data.labels[index]
+        sentence = self.data.sent[index]
+        label = self.data.label[index]
         X = prepare_features(sentence)
-        y = torch.tensor(int(label))
-        return sentence, X, y
+        y = torch.tensor(int(self.data.label[index]))
+        return X, y
 
     def __len__(self):
         return self.len
 
 def main():
-    global MAX_LEN
-    global TASK
-    global device
-
     args = parse_all_args()
-    open(args.out_f, "w+").close() # Clear out previous log files
-    TASK = args.task
     
-    if torch.cuda.is_available():
-        my_print(args.out_f,'Using Cuda')
-        device = torch.device("cuda")
-    else:
-        my_print(args.out_f,'Using CPU')
-        device = torch.device("cpu")
-   
-    #model = BertForSequenceClassification.from_pretrained('bert-base-multilingual-cased')
-    #model.save_pretrained('./models/bert')
-    #exit()
- 
-    my_print(args.out_f, 'Loading model')
     model = get_model(args.model)
-    my_print(args.out_f, 'getting max seq len')
-    MAX_LEN = get_seq_len(args.train)
-
-    my_print(args.out_f, 'Max seq len = {}\n Loading data...'.format(MAX_LEN))
 
     train_set, train_tmp = load_data(args.train, args.mb)
-    test_set,  test_tmp = load_data(args.test, args.mb)
-    my_print(args.out_f, 'Data loaded')
+    test_set, test_tmp = load_data(args.test, args.mb)
 
-    my_print(args.out_f, "Starting training")
-    model = train(args.lr, train_set, test_set, args.epochs, args.v, model, args.out_f)
-    my_print(args.out_f, 'Finished training \n Outputting results')
+    print("Finished loading data")
     
-def my_print(path, string, verbosity=True):
-    with open(path, 'a+') as f:
-        f.write(string)
-    if verbosity:
-        print(string)
-
-def get_seq_len(path):
-    """
-    Get max sequence length for padding later
-    """
-
-    df = pd.read_csv(path)
-    max_len = 0
-    for row in df['sents']:
-        toks = tokenizer.tokenize(row)
-        curr_len = len(tokenizer.convert_tokens_to_ids(toks))
-        if curr_len > max_len:
-            max_len = curr_len
-    # Account for additional tokens
-    return max_len + 2
-
+    
+    print("Beginning training")
+    model, train_preds, test_preds = train(args.lr, train_set, test_set, args.epochs, args.v, model)
+    train_preds.to_csv(args.data.replace(".txt", "_train_preds.csv"))
+    test_preds.to_csv(args.data.replace(".txt", "_test_preds.csv"))
+    get_class('two hundred hundred', model, tokenizer)
+    
 def get_model(model_name):
     """
     Load the model and tokenizer function specified by the user
@@ -114,31 +65,31 @@ def get_model(model_name):
     :return model: Pretrained model
     """
     global tokenizer
+    # NOTE: Do we need to use config??
     model = None
     if model_name == 'roberta':
+        print('Loading roberta')
         tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-        model = RobertaForSequenceClassification.from_pretrained('roberta-base')
+        config = RobertaConfig.from_pretrained('roberta-base')
+        model = RobertaForSequenceClassification(config)
 
     elif model_name == 'xlm':
+        print('Loading xlm')
         tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-100-1280')
-        model = XLMForSequenceClassification.from_pretrained('xlm-mlm-100-1280')
+        config = XLMConfig.from_pretrained('xlm-mlm-100-1280')
+        model = XLMForSequenceClassification(config)
 
-    # elif model_name == 'bert':
-    #     print('bert tokenzier')
-    #     tokenizer = BertTokenizer.from_pretrained('/home2/lexilz/models/multi_cased_L-12_H-768_A-12/pytorch_model')
-    #     print('yeet')
-    #     model = BertForSequenceClassification.from_pretrained('./models/bert')
-    #     print('rip')
-    
-    elif model_name == 'd-bert':
-        # distilbert-base-multilingual-cased
-        tokenizer = DistilBertTokenizer.from_pretrained('roberta-base')
-        model = DistilBertForSequenceClassification.from_pretrained('roberta-base')
+    elif model_name == 'bert':
+        print('Loading bert')
+        tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+        config = BertConfig.from_pretrained('bert-base-multilingual-cased')
+        model = BertForSequenceClassification.from_pretrained(config)
 
+    config.num_labels = 2
 
     return model
 
-def train(lr, train, test, epochs, verbosity, model, out_f):
+def train(lr, train, test, epochs, verbosity, model):
     """
     Train a model using the specified parameters
 
@@ -151,36 +102,39 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
-    model = model.to(device)
-    model.train()
+    train_preds = list()
+    test_preds = list()
+
+    # Check if Cuda is Available
+    if CUDA:
+        device = torch.device("cuda")
+        model = model.cuda()
+
+    model = model.train()
 
     for epoch in range(0, epochs):
+        print("Epoch: " + str(epoch))
         i = 0
-        open(out_f, "w+").close() # Clear out previous log files
-        for sents, x, y in train:
+        for x, y in train:
             optimizer.zero_grad()
             x = x.squeeze(1)
-            x = x.to(device)
-            y = y.to(device)
-            
-            output = model(x, labels=y)
-            loss = output[0]
-            logits = output[1]
+
+            output = model.forward(x)
+
+            _, predicted = torch.max(output[0].detach(), 1)
+
+            loss = loss_function(output[0], y)
             loss.backward()
             optimizer.step()
-        
-            _, predicted = torch.max(logits.detach(), 1)
-
-            # Accuracy
             if i % verbosity == 0:
-                correct = (predicted == y).float().sum()
-                print("Epoch {}/{}, Loss: {:.3f}, Accuracy: {:.3f}".format(epoch ,i, loss.item(), correct/x.shape[0]))
+                test_acc = validation(model, test)
+                print('({}.{}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc[0]))
             i += 1
+        train_acc, train_preds = validation(model, train)
+        test_acc, test_preds = validation(model, test)
+        print('({}.{}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
-        # Get accuracy for epoch
-        # my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
-
-    return model
+    return model, pd.DataFrame(train_preds), pd.DataFrame(test_preds)
 
 def validation(model, data):
     """
@@ -192,34 +146,19 @@ def validation(model, data):
     """
     correct = 0
     total = 0
-      
-    predictions = (torch.LongTensor()).to(device)
-    Y = (torch.LongTensor()).to(device)
-
-    model = model.to(device)
-    model.eval()
-
-    for sents, x, y in data:
+    predictions = list()
+    for x, y in data:
 
         x = x.squeeze(1)
-
-        x = x.to(device)
-        y = y.to(device)
-
+        if CUDA:
+            sent = sent.cuda()
+            label = label.cuda()
         output = model(x)
-
         _, predicted = torch.max(output[0].detach(), 1)
-        predicted = predicted.to(device)
-        predictions = torch.cat((predictions, predicted))
-        Y = torch.cat((Y, y))
+        predictions.append(predicted)
+        
+        total += 1
         correct += (predicted.cpu() == y.cpu()).sum()
-        total += x.shape[0]
-
-        # del x
-        # del y
-        # del predicted
-        # torch.cuda.empty_cache()
-
     accuracy = correct.numpy() / total
 
     return accuracy, predictions
@@ -237,10 +176,15 @@ def load_data(path, batch_size):
     """
     Load data for model
     """
-    dataset = Data(path)
+
+    df = pd.read_csv(path)
+    encodings = torch.Tensor()
+
+    
+    dataset = Pairs(df)
 
     params = {'batch_size': batch_size,
-            'shuffle': False,
+            'shuffle': True,
             'drop_last': False,
             'num_workers': 8}
 
@@ -248,30 +192,35 @@ def load_data(path, batch_size):
 
     return data_loader, dataset
 
-def prepare_features(seq):
-    global MAX_LEN
+def prepare_features(seq, max_seq_length=22, zero_pad=True, include_CLS_token=True, include_SEP_token=True):
+    # print(seqs)
+    # input_ids = torch.tensor([tokenizer.encode(seq, add_special_tokens=True) for seq in seqs])
+    # Tokenzine Input
+    tokens_a = tokenizer.tokenize(str(seq))
 
-    seq = seq.split(';')
-    tokens = list()
+    # Truncate
+    if len(tokens_a) > max_seq_length - 2:
+        tokens_a = tokens_a[0:(max_seq_length - 2)]
     # Initialize Tokens
-    tokens = [tokenizer.cls_token]
-    for s in seq:
-        # Tokenzine Input
-        tokens_a = tokenizer.tokenize(s)
+    tokens = []
+    if include_CLS_token:
+        tokens.append(tokenizer.cls_token)
+    # Add Tokens and separators
+    for token in tokens_a:
+        tokens.append(token)
 
-        # Add Tokens and separators
-        for token in tokens_a:
-            tokens.append(token)
-
+    if include_SEP_token:
         tokens.append(tokenizer.sep_token)
 
     input_ids = tokenizer.convert_tokens_to_ids(tokens)
-
-    # Zero-pad sequence length
-    while len(input_ids) < MAX_LEN:
-        input_ids.append(0)
-
-    return torch.tensor(input_ids).unsqueeze(0)
+    # Input Mask
+    input_mask = [1] * len(input_ids)
+    # Zero-pad sequence lenght
+    if zero_pad:
+        while len(input_ids) < max_seq_length:
+            input_ids.append(0)
+            input_mask.append(0)
+    return torch.tensor(input_ids).unsqueeze(0)#, input_mask
 
 def get_class(num, model, tokenizer):
     """
@@ -282,7 +231,8 @@ def get_class(num, model, tokenizer):
     """
     model.eval()
     num, _ = prepare_features(num)
-    num = num.to(device)
+    if CUDA:
+        num = num.cuda()
     output = model(num)[0]
     _, pred_label = torch.max(output.data, 1)
 
@@ -299,13 +249,9 @@ def parse_all_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-train",type=str,  help = "Path to input data file", \
-        default = "./data/en_syn_train.csv")
-    parser.add_argument("-task",type=str,  help = "Whether to to the syntactic or semantic task", \
-        default = "syn")
+        default = "./data/en_syn_sentences_train.txt")
     parser.add_argument('-test', help = 'Path to test data file', \
-        type=str, default="./data/en_syn_test.csv")
-    parser.add_argument("-out_f",type=str,  help = "Path to output acc file", \
-        default = "./results/res")
+        type=str, default="./data/en_syn_sentences_train.txt")
     parser.add_argument("-model",type=str,  help = "Model type to use", default = "xlm")
     parser.add_argument("-lr",type=float,\
             help="The learning rate (float) [default: 0.01]",default=0.01)
