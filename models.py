@@ -19,7 +19,7 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import RobertaModel, RobertaTokenizer
 from transformers import RobertaForSequenceClassification, RobertaConfig
 from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
-from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
+from transformers import DistilBertModel, DistilBertTokenizer, DistilBertConfig, DistilBertForSequenceClassification
 
 tokenizer = None
 device = None
@@ -123,15 +123,17 @@ def get_model(model_name):
         tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-100-1280')
         model = XLMForSequenceClassification.from_pretrained('xlm-mlm-100-1280')
 
-    elif model_name == 'bert':
-        print('bert tokenzier')
-        tokenizer = BertTokenizer.from_pretrained('/home2/lexilz/models/multi_cased_L-12_H-768_A-12/pytorch_model')
-        print('yeet')
-        model = BertForSequenceClassification.from_pretrained('./models/bert')
-        print('rip')
+    # elif model_name == 'bert':
+    #     print('bert tokenzier')
+    #     tokenizer = BertTokenizer.from_pretrained('/home2/lexilz/models/multi_cased_L-12_H-768_A-12/pytorch_model')
+    #     print('yeet')
+    #     model = BertForSequenceClassification.from_pretrained('./models/bert')
+    #     print('rip')
     
     elif model_name == 'd-bert':
-       distilbert-base-multilingual-cased
+        # distilbert-base-multilingual-cased
+        tokenizer = DistlBertTokenizer.from_pretrained('distilbert-base-multilingual-cased')
+        model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-multilingual-cased')
 
 
     return model
