@@ -152,26 +152,21 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
     model = model.to(device)
-    model.train()
+    
 
     for epoch in range(0, epochs):
+        model.train()
         i = 0
         open(out_f, "w+").close() # Clear out previous log files
         for sents, x, y in train:
-            print(sents)
-            print(type(sents))
-            optimizer.zero_grad()
-            x = x.squeeze(1)
-            x = x.to(device)
-            y = y.to(device)
             
-            output = model(x, labels=y)
-            loss, logits = output
+            optimizer.zero_grad()
+            
+            loss, predicted = get_preds(x, y, model)
+
             loss.backward()
             optimizer.step()
         
-            _, predicted = torch.max(logits.detach(), 1)
-
             # Accuracy
             if i % verbosity == 0:
                 correct = (predicted == y).float().sum()
@@ -179,9 +174,30 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             i += 1
 
         # Get accuracy for epoch
+        model.eval()
+        all_sents = list()
+        all_preds = list()
+        for sents, x, y in test:
+            all_sents += list(sents)
+            _, predicted = get_preds(x, y, model)
+            print(predicted)
+            print(type(predicted))
+
         my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model
+
+def get_preds(x, y, model):
+    x = x.squeeze(1)
+    x = x.to(device)
+    y = y.to(device)
+    
+    output = model(x, labels=y)
+    loss, logits = output
+
+    _, predicted = torch.max(logits.detach(), 1)
+
+    return loss, predicted
 
 def validation(model, data):
     """
