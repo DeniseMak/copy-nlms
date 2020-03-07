@@ -201,7 +201,7 @@ def evaluate_data(data, model, path):
     # all_true = list()
         for sents, x, y in data:
             sents = list(sents)
-            predicted = list(get_preds(x, y, model))
+            predicted = get_preds(x, y, model).tolist()
             # all_preds += list(predicted)
             y = y.tolist()
 
