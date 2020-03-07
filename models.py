@@ -158,14 +158,15 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         i = 0
         open(out_f, "w+").close() # Clear out previous log files
         for sents, x, y in train:
+            print(sents)
+            print(type(sents))
             optimizer.zero_grad()
             x = x.squeeze(1)
             x = x.to(device)
             y = y.to(device)
             
             output = model(x, labels=y)
-            loss = output[0]
-            logits = output[1]
+            loss, logits = output
             loss.backward()
             optimizer.step()
         
@@ -178,7 +179,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             i += 1
 
         # Get accuracy for epoch
-        # my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
+        my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model
 
