@@ -176,6 +176,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         model.eval()
 
         test_path = './results/test_preds.csv'
+        open(test_path, "w+").close() 
         evaluate_data(test, model, test_path)
 
         test_res = pd.read_csv(test_path)
@@ -193,7 +194,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
 
 def evaluate_data(data, model, path):
 
-    with open(path, 'a+') as f:
+    with open(path, 'a') as f:
         f.write('sents, true, preds\n')
     # all_sents = list()
     # all_preds = list()
