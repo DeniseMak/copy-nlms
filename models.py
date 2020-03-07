@@ -175,7 +175,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         # train_res = evaluate_data(train, model)
         model.eval()
 
-        test_path = out_f.replace('.txt', 'test_preds.csv')
+        test_path = out_f.replace('./results/test_preds.csv')
         evaluate_data(test, model, test_path)
 
         test_res = pd.read_csv(test_path)
