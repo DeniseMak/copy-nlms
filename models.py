@@ -155,12 +155,12 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             optimizer.zero_grad()
             
             loss, predicted = get_preds(x, y, model)
-            print(predicted)
-            print(type(predicted))
 
             loss.backward()
             optimizer.step()
         
+            print(evaluate_data(test, model))
+
             # Accuracy
             if i % verbosity == 0:
                 correct = (predicted == y).float().sum()
@@ -168,17 +168,35 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             i += 1
 
         # Get accuracy for epoch
-        model.eval()
-        all_sents = list()
-        all_preds = list()
-        for sents, x, y in test:
-            all_sents += list(sents)
-            _, predicted = get_preds(x, y, model)
+        # model.eval()
+                    
             
 
         # my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model
+
+def evaluate_data(data, model):
+    model.eval()
+
+    all_sents = list()
+    all_preds = list()
+    all_true = list()
+    for sents, x, y in data:
+        all_sents += list(sents)
+        _, predicted = get_preds(x, y, model)
+        all_preds += predicted
+        all_true += y.to_list()
+
+    df = pd.DataFrame()
+    df['sents'] = all_sents
+    df['true'] = all_true
+    df['preds'] = all_preds
+    
+    model.train()
+
+    return df
+
 
 def get_preds(x, y, model):
     x = x.squeeze(1)
@@ -190,7 +208,7 @@ def get_preds(x, y, model):
 
     _, predicted = torch.max(logits.detach(), 1)
 
-    return loss, predicted
+    return loss, predicted.to_list()
 
 def validation(model, data):
     """
