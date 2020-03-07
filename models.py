@@ -154,25 +154,34 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
 
             optimizer.zero_grad()
             
-            loss, predicted = get_preds(x, y, model)
+            loss, predicted, y = get_preds(x, y, model)
 
             loss.backward()
             optimizer.step()
         
-            print(evaluate_data(test, model))
+            # print(evaluate_data(test, model))
 
             # Accuracy
             if i % verbosity == 0:
+                # print
                 correct = (predicted == y).float().sum()
                 print("Epoch ({}.{}), Loss: {:.3f}, Accuracy: {:.3f}".format(epoch ,i, loss.item(), correct/x.shape[0]))
             i += 1
+            break
 
         # Get accuracy for epoch
         # model.eval()
                     
-            
+        train_res = evaluate_data(train, model)
+        test_res = evaluate_data(test, model)
 
-        # my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
+        train_res.to_csv(out_f.replace('.txt', 'train_preds.csv'))
+        test_res.to_csv(out_f.replace('.txt', 'test_preds.csv'))
+
+        train_acc = len(np.where(train_res['preds'] == train_res['true'])) / len(train_res)
+        test_acc = len(np.where(test_res['preds'] == test_res['true'])) / len(test_res)
+
+        my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model
 
@@ -208,7 +217,7 @@ def get_preds(x, y, model):
 
     _, predicted = torch.max(logits.detach(), 1)
 
-    return loss, predicted
+    return loss, predicted, y
 
 def validation(model, data):
     """
