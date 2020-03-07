@@ -202,7 +202,7 @@ def evaluate_data(data, model, path):
             # all_preds += list(predicted)
             y = y.tolist()
 
-            rows = list(zip(sents, y, preds))
+            rows = list(zip(sents, y, predicted))
             for row in rows:
                 f.write(', '.join(row) + '\n')
     return df
