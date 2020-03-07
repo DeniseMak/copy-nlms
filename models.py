@@ -185,8 +185,8 @@ def evaluate_data(data, model):
     for sents, x, y in data:
         all_sents += list(sents)
         _, predicted = get_preds(x, y, model)
-        all_preds += predicted.to_list()
-        all_true += y.to_list()
+        all_preds += predicted.to_ist()
+        all_true += y.tolist()
 
     df = pd.DataFrame()
     df['sents'] = all_sents
