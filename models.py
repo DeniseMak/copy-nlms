@@ -193,7 +193,7 @@ def evaluate_data(data, model):
     all_true = list()
     for sents, x, y in data:
         all_sents += list(sents)
-        _, predicted = get_preds(x, y, model)
+        predicted = get_preds(x, y, model)
         all_preds += predicted.tolist()
         all_true += y.tolist()
 
