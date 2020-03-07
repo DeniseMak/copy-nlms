@@ -67,7 +67,7 @@ def main():
     my_print(args.out_f, 'Getting max sequence len')
     MAX_LEN = get_seq_len(args.train)
 
-    my_print(args.out_f, 'Max seq len = {}\n Loading data...'.format(MAX_LEN))
+    my_print(args.out_f, 'Max seq len = {}\nLoading data...'.format(MAX_LEN))
 
     train_set, train_tmp = load_data(args.train, args.mb)
     test_set,  test_tmp = load_data(args.test, args.mb)
@@ -173,10 +173,13 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         # model.eval()
                     
         # train_res = evaluate_data(train, model)
-        test_res = evaluate_data(test, model)
+        model.eval()
+
+        test_path = out_f.replace('.txt', 'test_preds.csv')
+        test_res = evaluate_data(test, model, test_path)
 
         # train_res.to_csv(out_f.replace('.txt', 'train_preds.csv'))
-        test_res.to_csv(out_f.replace('.txt', 'test_preds.csv'))
+        # test_res.to_csv(te
 
         # train_acc = len(np.where(train_res['preds'] == train_res['true'])) / len(train_res)
         test_acc = len(np.where(test_res['preds'] == test_res['true'])) / len(test_res)
@@ -186,25 +189,22 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
 
     return model
 
-def evaluate_data(data, model):
-    model.eval()
+def evaluate_data(data, model, path):
 
-    all_sents = list()
-    all_preds = list()
-    all_true = list()
-    for sents, x, y in data:
-        all_sents += list(sents)
-        predicted = get_preds(x, y, model)
-        all_preds += list(predicted)
-        all_true += y.tolist()
+    with open(path, 'a+') as f:
+        f.write('sents, true, preds\n')
+    # all_sents = list()
+    # all_preds = list()
+    # all_true = list()
+        for sents, x, y in data:
+            sents = list(sents)
+            predicted = list(get_preds(x, y, model))
+            # all_preds += list(predicted)
+            y = y.tolist()
 
-    df = pd.DataFrame()
-    df['sents'] = all_sents
-    df['true'] = all_true
-    df['preds'] = all_preds
-    
-    model.train()
-
+            rows = list(zip(sents, y, preds))
+            for row in rows:
+                f.write(', '.join(row) + '\n')
     return df
 
 
