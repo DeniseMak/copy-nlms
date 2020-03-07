@@ -14,9 +14,11 @@ def main():
         pairs = load_prev(args.load)
     else:
         pairs = gen_pairs(args.range, args.samples)
-        output_pairs(args.dir + "sem_int_pairs.txt", pairs)
     
-    labels = gen_sem_labels(pairs)
+    labels, pairs = gen_sem_labels(pairs)
+
+    if not args.load:
+        output_pairs(args.dir + "sem_int_pairs.txt", pairs)
     
     final, nums = to_text(pairs, args.lang)
 
@@ -121,14 +123,15 @@ def gen_sem_labels(pairs):
     :return labels: (list) Classes for given pairs
     """
     labels = list()
-    for pair in pairs:
-        if pair[0] > pair[1]:
+    for i in range(0, len(pairs)):
+        if pair[si][0] > pairs[i][1]:
             labels.append(0)
-        elif pair[0] < pair[1]:
+        elif pairs[i][0] < pair[i][1]:
             labels.append(1)
         else:
-            labels.append(2)
-    return labels
+            pairs[i][0] += 1
+            labels.append(0)
+    return labels, pairs
 
 def gen_pairs(r, s):
     """
