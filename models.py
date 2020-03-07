@@ -180,6 +180,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         evaluate_data(test, model, test_path)
 
         test_res = pd.read_csv(test_path)
+        print(test_res)
 
         # train_res.to_csv(out_f.replace('.txt', 'train_preds.csv'))
         # test_res.to_csv(te
@@ -195,7 +196,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
 def evaluate_data(data, model, path):
 
     with open(path, 'a') as f:
-        f.write('sents, true, preds\n')
+        f.write('sents, true, preds \n')
     # all_sents = list()
     # all_preds = list()
     # all_true = list()
@@ -203,9 +204,6 @@ def evaluate_data(data, model, path):
             sents = list(sents)
             _, predicted, _ = get_preds(x, y, model)
             predicted = predicted.tolist()
-            print(predicted)
-            print(type(predicted))
-            # all_preds += list(predicted)
             y = y.tolist()
 
             rows = list(zip(sents, y, predicted))
