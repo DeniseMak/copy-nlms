@@ -18,7 +18,7 @@ def calc_distances(lang, window_size):
     :param window_size: (int) Given a word, how many previous words to calculate levenshtein distance with. Add each result to sum for that word.
     :return window_distances: (dict) A dictionary keyed on words with values corresponding to sums of levenshtein distances within window size.  
     """
-    with open("opaqueness_measures/numbers/numbers_" + lang + ".txt", "r", encoding="utf-8") as nums:
+    with open("data/numbers_" + lang + ".txt", "r", encoding="utf-8") as nums:
         window = []
         window_distances = {}
 
