@@ -24,12 +24,12 @@ device = None
 MAX_LEN = None
 TASK = None
 
-if torch.cuda.is_available():
-    print('Using Cuda')
-    device = torch.device("cuda")
-else:
-    print('Using CPU')
-    device = torch.device("cpu")
+# if torch.cuda.is_available():
+#     print('Using Cuda')
+#     device = torch.device("cuda")
+# else:
+#     print('Using CPU')
+#     device = torch.device("cpu")
 
 class Data(Dataset):
     def __init__(self, path):
@@ -194,7 +194,7 @@ def evaluate_data(data, model):
     for sents, x, y in data:
         all_sents += list(sents)
         predicted = get_preds(x, y, model)
-        all_preds += predicted.tolist()
+        all_preds += list(predicted)
         all_true += y.tolist()
 
     df = pd.DataFrame()
