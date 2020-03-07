@@ -176,7 +176,9 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         model.eval()
 
         test_path = out_f.replace('.txt', 'test_preds.csv')
-        test_res = evaluate_data(test, model, test_path)
+        evaluate_data(test, model, test_path)
+
+        test_res = pd.read_csv(test_path)
 
         # train_res.to_csv(out_f.replace('.txt', 'train_preds.csv'))
         # test_res.to_csv(te
@@ -205,7 +207,6 @@ def evaluate_data(data, model, path):
             rows = list(zip(sents, y, predicted))
             for row in rows:
                 f.write(', '.join([str(i) for i in row]) + '\n')
-    return df
 
 
 def get_preds(x, y, model):
