@@ -185,7 +185,7 @@ def evaluate_data(data, model):
     for sents, x, y in data:
         all_sents += list(sents)
         _, predicted = get_preds(x, y, model)
-        all_preds += predicted
+        all_preds += predicted.to_list()
         all_true += y.to_list()
 
     df = pd.DataFrame()
@@ -208,7 +208,7 @@ def get_preds(x, y, model):
 
     _, predicted = torch.max(logits.detach(), 1)
 
-    return loss, predicted.to_list()
+    return loss, predicted
 
 def validation(model, data):
     """
