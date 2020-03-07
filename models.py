@@ -1,5 +1,3 @@
-print('plz')
-
 import pandas as pd
 import argparse
 import numpy as np
@@ -25,8 +23,6 @@ tokenizer = None
 device = None
 MAX_LEN = None
 TASK = None
-
-print('asdf')
 
 if torch.cuda.is_available():
     print('Using Cuda')
@@ -65,14 +61,10 @@ def main():
     else:
         my_print(args.out_f,'Using CPU')
         device = torch.device("cpu")
-   
-    #model = BertForSequenceClassification.from_pretrained('bert-base-multilingual-cased')
-    #model.save_pretrained('./models/bert')
-    #exit()
  
     my_print(args.out_f, 'Loading model')
     model = get_model(args.model)
-    my_print(args.out_f, 'getting max seq len')
+    my_print(args.out_f, 'Getting max sequence len')
     MAX_LEN = get_seq_len(args.train)
 
     my_print(args.out_f, 'Max seq len = {}\n Loading data...'.format(MAX_LEN))
@@ -159,10 +151,12 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         i = 0
         open(out_f, "w+").close() # Clear out previous log files
         for sents, x, y in train:
-            
+
             optimizer.zero_grad()
             
             loss, predicted = get_preds(x, y, model)
+            print(predicted)
+            print(type(predicted))
 
             loss.backward()
             optimizer.step()
@@ -170,7 +164,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             # Accuracy
             if i % verbosity == 0:
                 correct = (predicted == y).float().sum()
-                print("Epoch {}/{}, Loss: {:.3f}, Accuracy: {:.3f}".format(epoch ,i, loss.item(), correct/x.shape[0]))
+                print("Epoch ({}.{}), Loss: {:.3f}, Accuracy: {:.3f}".format(epoch ,i, loss.item(), correct/x.shape[0]))
             i += 1
 
         # Get accuracy for epoch
@@ -180,10 +174,9 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         for sents, x, y in test:
             all_sents += list(sents)
             _, predicted = get_preds(x, y, model)
-            print(predicted)
-            print(type(predicted))
+            
 
-        my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
+        # my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
 
     return model
 
