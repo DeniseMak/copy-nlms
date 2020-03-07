@@ -172,16 +172,16 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         # Get accuracy for epoch
         # model.eval()
                     
-        train_res = evaluate_data(train, model)
+        # train_res = evaluate_data(train, model)
         test_res = evaluate_data(test, model)
 
-        train_res.to_csv(out_f.replace('.txt', 'train_preds.csv'))
+        # train_res.to_csv(out_f.replace('.txt', 'train_preds.csv'))
         test_res.to_csv(out_f.replace('.txt', 'test_preds.csv'))
 
-        train_acc = len(np.where(train_res['preds'] == train_res['true'])) / len(train_res)
+        # train_acc = len(np.where(train_res['preds'] == train_res['true'])) / len(train_res)
         test_acc = len(np.where(test_res['preds'] == test_res['true'])) / len(test_res)
 
-        my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
+        my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc, test_acc))
         exit()
 
     return model
