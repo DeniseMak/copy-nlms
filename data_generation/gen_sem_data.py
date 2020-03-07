@@ -124,9 +124,9 @@ def gen_sem_labels(pairs):
     """
     labels = list()
     for i in range(0, len(pairs)):
-        if pair[si][0] > pairs[i][1]:
+        if pairs[i][0] > pairs[i][1]:
             labels.append(0)
-        elif pairs[i][0] < pair[i][1]:
+        elif pairs[i][0] < pairs[i][1]:
             labels.append(1)
         else:
             pairs[i][0] += 1
