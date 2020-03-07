@@ -182,6 +182,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         test_acc = len(np.where(test_res['preds'] == test_res['true'])) / len(test_res)
 
         my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
+        exit()
 
     return model
 
