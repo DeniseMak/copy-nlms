@@ -204,7 +204,7 @@ def evaluate_data(data, model, path):
 
             rows = list(zip(sents, y, predicted))
             for row in rows:
-                f.write(', '.join(row) + '\n')
+                f.write(', '.join([str(i) for i in row]) + '\n')
     return df
 
 
