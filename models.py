@@ -14,8 +14,8 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 
-from transformers import RobertaModel, RobertaTokenizer
-from transformers import RobertaForSequenceClassification, RobertaConfig
+from transformers import XLMRobertaModel, XLMRobertaTokenizer
+from transformers import XLMRobertaForSequenceClassification, XLMRobertaConfig
 from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
 from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
 
@@ -101,8 +101,8 @@ def get_model(model_name):
     global tokenizer
     model = None
     if model_name == 'roberta':
-        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-        model = RobertaForSequenceClassification.from_pretrained('roberta-base')
+        tokenizer = XLMRobertaForSequenceClassification.from_pretrained('xlm-roberta-base')
+        model = XLMRobertaForSequenceClassification.from_pretrained('xlm-roberta-base')
 
     elif model_name == 'xlm':
         tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-100-1280')
@@ -124,7 +124,6 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     :param verbosity: How often to calculate and print test accuracy
     :return model: trained model
     """
-    # loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
     model = model.to(device)
@@ -148,23 +147,32 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             i += 1
             break
 
-        # Get train/test accuracy for full data each epoch
+        # Get test accuracy for full data each epoch
         model.eval()
 
         test_path = out_f.replace('.txt', '_test_preds.csv')
-        test_path = './results/test_preds.csv'
-        test_acc = evaluate_data(test, model, test_path)
+        test_acc = evaluate_data(test, model, test_path) 
 
-        train_path = out_f.replace('.txt', '_train_preds.csv')
-        train_path = './results/train_preds.csv'
-        train_acc = evaluate_data(train, model, train_path)    
+        my_print(out_f, '({}.{:03d}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
 
-        my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
-        exit()
+    # Make train predictions at the end and get accuracy
+    train_path = out_f.replace('.txt', '_train_preds.csv')
+    train_acc = evaluate_data(train, model, train_path)    
+
+    my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {}'.format(epoch, i, loss.item(), train_acc))
 
     return model
 
 def evaluate_data(data, model, path):
+    """
+    Get and store predictions for a dataset in a specified csv file
+
+    :param data: (DataLoader) Contains minibatches to get predictions on
+    :param model: Model used to make predictions
+    :param path: Location to store predictions
+
+    :return acc: (float) Accuracy of the predictions made
+    """
     open(path, "w+").close() # clear prev preds/create file
     with open(path, 'a') as f:
         f.write('sents,true,preds\n')
@@ -186,6 +194,13 @@ def evaluate_data(data, model, path):
     return acc
 
 def get_preds(x, y, model):
+    """
+    Get predictions from a model on a specified set of vectors
+
+    :param x: Input vectors
+    :param y: Correct labels for input x
+    :param model: Model to evaluate on
+    """
     x = x.squeeze(1)
     x = x.to(device)
     y = y.to(device)
@@ -196,48 +211,6 @@ def get_preds(x, y, model):
     _, predicted = torch.max(logits.detach(), 1)
 
     return loss, predicted, y
-
-def validation(model, data):
-    """
-    Calculate accuracy of the model on a set of data
-
-    :param model: Trained model
-    :param data: Data set to predict and calculate on
-    :return accuracy: Model accuracy on dataset
-    """
-    correct = 0
-    total = 0
-      
-    predictions = (torch.LongTensor()).to(device)
-    Y = (torch.LongTensor()).to(device)
-
-    model = model.to(device)
-    model.eval()
-
-    for sents, x, y in data:
-
-        x = x.squeeze(1)
-
-        x = x.to(device)
-        y = y.to(device)
-
-        output = model(x)
-
-        _, predicted = torch.max(output[0].detach(), 1)
-        predicted = predicted.to(device)
-        predictions = torch.cat((predictions, predicted))
-        Y = torch.cat((Y, y))
-        correct += (predicted.cpu() == y.cpu()).sum()
-        total += x.shape[0]
-
-        # del x
-        # del y
-        # del predicted
-        # torch.cuda.empty_cache()
-
-    accuracy = correct.numpy() / total
-
-    return accuracy, predictions
 
 def read_file(path):
     """
@@ -250,12 +223,15 @@ def read_file(path):
 
 def load_data(path, batch_size):
     """
-    Load data for model
+    Create a DataSet and a DataLoader for the model
+
+    :param path: (str) Location of data
+    :param batch_size: (int) Size of minibatches
     """
     dataset = Data(path)
 
     params = {'batch_size': batch_size,
-            'shuffle': False,
+            'shuffle': True,
             'drop_last': False,
             'num_workers': 8}
 
@@ -264,6 +240,13 @@ def load_data(path, batch_size):
     return data_loader, dataset
 
 def prepare_features(seq):
+    """
+    Convert a sequence of one or more sentences into tokens, seperating sentences
+    with the seperator token
+
+    :param seq: (str) Text data to tokenize
+    :return (tensor): Tokenized text data
+    """
     global MAX_LEN
 
     seq = seq.split(';')
@@ -287,23 +270,6 @@ def prepare_features(seq):
         input_ids.append(0)
 
     return torch.tensor(input_ids).unsqueeze(0)
-
-# def get_class(num, model, tokenizer):
-#     """
-#     Get class of a number in text form for an already trained model
-
-#     :param num: (str) Number in text form
-#     :return prediction: Class of input number
-#     """
-#     model.eval()
-#     num, _ = prepare_features(num)
-#     num = num.to(device)
-#     output = model(num)[0]
-#     _, pred_label = torch.max(output.data, 1)
-
-#     # For some reason 0, 1 maps to 1, 2
-#     prediction = pred_label + 1
-#     return prediction
 
 def parse_all_args():
     """
