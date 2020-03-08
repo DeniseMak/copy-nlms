@@ -4,13 +4,13 @@ import sys
 
 def main():
     args = parse_all_args()
-    opaqueness = calc_opaqueness(args.lang)
+    transparency = calc_transparency(args.lang)
     with open(args.output, "a+") as f:
-        f.write(args.lang + "," + str(opaqueness) + "\n")
+        f.write(args.lang + "," + str(transparency) + "\n")
     
-def calc_opaqueness(lang):
+def calc_transparency(lang):
     """
-    Function that calculates our opaqueness measure.
+    Function that calculates our transparency measure.
     """
     with open("./data/numbers_" + lang + ".txt", "r", encoding='utf-8') as f:
         seen = set()
@@ -38,8 +38,8 @@ def parse_all_args():
     :return args: (argparse) Model hyperparameters 
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("-lang",type=str, help = "Language to get opaqueness measure", default = "en")
-    parser.add_argument("-output", type=str, help= "Where to output opaqueness results", default = "results.csv")
+    parser.add_argument("-lang",type=str, help = "Language to get transparency measure", default = "en")
+    parser.add_argument("-output", type=str, help= "Where to output transparency results", default = "results.csv")
     return parser.parse_args()
 
 if __name__ == '__main__':

@@ -4,18 +4,18 @@ from matplotlib import pyplot as plt
 from matplotlib import style
 
 langs = ['en', 'ja', 'dk', 'fr', 'es', 'ar', 'fi', 'ru', 'th']
-models = ['opaqueness']
+models = ['transparency']
 
 
 def plot(langs):
 
-    data = pd.read_csv("./opaqueness_results.csv")
+    data = pd.read_csv("./transparency_results.csv")
 
-    style.use("fivethirtyeight")
+    # style.use("fivethirtyeight")
     scores = []
     for lang in langs:
         scores.append(int(data[data.lang == lang]["score"]))
-    plt.title("Reusage Count (Higher is Better")
+    plt.title("Transparency Score (Higher is Better)")
     plt.bar(langs, scores)
     plt.show()
 
