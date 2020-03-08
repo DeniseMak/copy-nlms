@@ -102,23 +102,18 @@ def get_model(model_name):
     model = None
     if model_name == 'roberta':
         tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+        # config = RobertaConfig.from_pretrained('roberta-base')
         model = RobertaForSequenceClassification.from_pretrained('roberta-base')
 
     elif model_name == 'xlm':
         tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-100-1280')
+        # config = XLMConfig.from_pretrained('xlm-mlm-100-1280')
         model = XLMForSequenceClassification.from_pretrained('xlm-mlm-100-1280')
 
-    # elif model_name == 'bert':
-    #     print('bert tokenzier')
-    #     tokenizer = BertTokenizer.from_pretrained('/home2/lexilz/models/multi_cased_L-12_H-768_A-12/pytorch_model')
-    #     print('yeet')
-    #     model = BertForSequenceClassification.from_pretrained('./models/bert')
-    #     print('rip')
-    
-    elif model_name == 'd-bert':
-        # distilbert-base-multilingual-cased
-        tokenizer = DistilBertTokenizer.from_pretrained('roberta-base')
-        model = DistilBertForSequenceClassification.from_pretrained('roberta-base')
+    elif model_name == 'bert':
+        tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+        # config = BertConfig.from_pretrained('bert-base-multilingual-cased')
+        model = BertForSequenceClassification.from_pretrained('bert-base-multilingual-cased')
 
 
     return model
@@ -133,12 +128,11 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     :param verbosity: How often to calculate and print test accuracy
     :return model: trained model
     """
-    loss_function = nn.CrossEntropyLoss()
+    # loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params=model.parameters(), lr=lr)
 
     model = model.to(device)
     
-
     for epoch in range(0, epochs):
         model.train()
         i = 0
@@ -165,19 +159,11 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
 
         test_path = out_f.replace('.txt', '_test_preds.csv')
         test_path = './results/test_preds.csv'
-        open(test_path, "w+").close() # clear prev preds/create file
-        evaluate_data(test, model, test_path)
-        test_res = pd.read_csv(test_path)
-        correct = np.where(test_res['preds'] == test_res['true'])
-        test_acc = len(correct[0]) / len(test_res)
+        test_acc = evaluate_data(test, model, test_path)
 
         train_path = out_f.replace('.txt', '_train_preds.csv')
         train_path = './results/test_preds.csv'
-        open(train_path, "w+").close() # clear prev preds/create file
-        evaluate_data(train, model, train_path)
-        train_res = pd.read_csv(train_path)
-        correct = np.where(train_res['preds'] == train_res['true'])
-        train_acc = len(correct[0]) / len(train_res)        
+        train_acc = evaluate_data(train, model, train_path)    
 
         my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
         exit()
@@ -185,12 +171,10 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     return model
 
 def evaluate_data(data, model, path):
-
+    open(path, "w+").close() # clear prev preds/create file
     with open(path, 'a') as f:
         f.write('sents,true,preds\n')
-    # all_sents = list()
-    # all_preds = list()
-    # all_true = list()
+
         for sents, x, y in data:
             sents = list(sents)
             _, predicted, _ = get_preds(x, y, model)
@@ -201,6 +185,11 @@ def evaluate_data(data, model, path):
             for row in rows:
                 f.write(','.join([str(i) for i in row]) + '\n')
 
+    res = pd.read_csv(path)
+    correct = np.where(res['preds'] == res['true'])
+    acc = len(correct[0]) / len(res)
+
+    return acc
 
 def get_preds(x, y, model):
     x = x.squeeze(1)
