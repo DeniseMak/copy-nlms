@@ -40,13 +40,14 @@ def plot(langs):
     
     plt.show()
 
-# for model in models:
-#     output = "./" + model+ "_results.csv"
-#     with open(output, "w+") as f:
-#         f.write("lang,window,score\n")
-#     for lang in langs:
-#         for window_size in range(1, 31):
-#             print('Model: {}, Lang: {}, Window_Size: {}'.format(model.upper(), lang.upper(), window_size))
-#             os.system('python ./{} -lang {} -window_size {} -output {}'.format(model + ".py", lang, window_size, output))
+for model in models:
+    output = "./" + model+ "_results.csv"
+    with open(output, "w+") as f:
+        f.write("lang,window,score\n")
+    for lang in langs:
+        for window_size in range(1, 31):
+            print('Model: {}, Lang: {}, Window_Size: {}'.format(model.upper(), lang.upper(), window_size))
+            os.system('python ./{} -lang {} -window_size {} -output {}'.format(model + ".py", lang, window_size, output))
+
 
 plot(langs)
