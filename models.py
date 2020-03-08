@@ -160,27 +160,26 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             i += 1
             break
 
-        # Get accuracy for epoch
-        # model.eval()
-                    
-        # train_res = evaluate_data(train, model)
+        # Get train/test accuracy for full data each epoch
         model.eval()
 
         test_path = out_f.replace('.txt', '_test_preds.csv')
-        train_path = out_f.replace('.txt', '_train_preds.csv')
         test_path = './results/test_preds.csv'
         open(test_path, "w+").close() # clear prev preds/create file
         evaluate_data(test, model, test_path)
         test_res = pd.read_csv(test_path)
-        print(test_res)
-
-        # train_acc = len(np.where(train_res['preds'] == train_res['true'])) / len(train_res)
         correct = np.where(test_res['preds'] == test_res['true'])
-        print(correct)
-        print(len(correct))
         test_acc = len(correct[0]) / len(test_res)
 
-        my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc, test_acc))
+        train_path = out_f.replace('.txt', '_train_preds.csv')
+        train_path = './results/test_preds.csv'
+        open(train_path, "w+").close() # clear prev preds/create file
+        evaluate_data(train, model, train_path)
+        train_res = pd.read_csv(train_path)
+        correct = np.where(train_res['preds'] == train_res['true'])
+        train_acc = len(correct[0]) / len(train_res)        
+
+        my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
         exit()
 
     return model
