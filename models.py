@@ -102,19 +102,15 @@ def get_model(model_name):
     model = None
     if model_name == 'roberta':
         tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
-        # config = RobertaConfig.from_pretrained('roberta-base')
         model = RobertaForSequenceClassification.from_pretrained('roberta-base')
 
     elif model_name == 'xlm':
         tokenizer = XLMTokenizer.from_pretrained('xlm-mlm-100-1280')
-        # config = XLMConfig.from_pretrained('xlm-mlm-100-1280')
         model = XLMForSequenceClassification.from_pretrained('xlm-mlm-100-1280')
 
     elif model_name == 'bert':
         tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
-        # config = BertConfig.from_pretrained('bert-base-multilingual-cased')
         model = BertForSequenceClassification.from_pretrained('bert-base-multilingual-cased')
-
 
     return model
 
@@ -160,7 +156,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         test_acc = evaluate_data(test, model, test_path)
 
         train_path = out_f.replace('.txt', '_train_preds.csv')
-        train_path = './results/test_preds.csv'
+        train_path = './results/train_preds.csv'
         train_acc = evaluate_data(train, model, train_path)    
 
         my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), train_acc, test_acc))
@@ -292,22 +288,22 @@ def prepare_features(seq):
 
     return torch.tensor(input_ids).unsqueeze(0)
 
-def get_class(num, model, tokenizer):
-    """
-    Get class of a number in text form for an already trained model
+# def get_class(num, model, tokenizer):
+#     """
+#     Get class of a number in text form for an already trained model
 
-    :param num: (str) Number in text form
-    :return prediction: Class of input number
-    """
-    model.eval()
-    num, _ = prepare_features(num)
-    num = num.to(device)
-    output = model(num)[0]
-    _, pred_label = torch.max(output.data, 1)
+#     :param num: (str) Number in text form
+#     :return prediction: Class of input number
+#     """
+#     model.eval()
+#     num, _ = prepare_features(num)
+#     num = num.to(device)
+#     output = model(num)[0]
+#     _, pred_label = torch.max(output.data, 1)
 
-    # For some reason 0, 1 maps to 1, 2
-    prediction = pred_label + 1
-    return prediction
+#     # For some reason 0, 1 maps to 1, 2
+#     prediction = pred_label + 1
+#     return prediction
 
 def parse_all_args():
     """
