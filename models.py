@@ -17,7 +17,7 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import RobertaModel, RobertaTokenizer
 from transformers import RobertaForSequenceClassification, RobertaConfig
 from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
-from transformers import DistilBertModel, DistilBertTokenizer, DistilBertConfig, DistilBertForSequenceClassification
+from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
 
 tokenizer = None
 device = None
@@ -136,7 +136,6 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     for epoch in range(0, epochs):
         model.train()
         i = 0
-        open(out_f, "w+").close() # Clear out previous log files
         for sents, x, y in train:
 
             optimizer.zero_grad()
@@ -148,9 +147,8 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         
             # Accuracy
             if i % verbosity == 0:
-                # print
                 correct = (predicted == y).float().sum()
-                print("Epoch ({}.{}), Loss: {:.3f}, Accuracy: {:.3f}".format(epoch ,i, loss.item(), correct/x.shape[0]))
+                my_print(out_f, "Epoch ({}.{}), Loss: {:.3f}, Accuracy: {:.3f}".format(epoch ,i, loss.item(), correct/x.shape[0]))
             i += 1
             break
 
