@@ -18,6 +18,7 @@ from transformers import XLMRobertaModel, XLMRobertaTokenizer
 from transformers import XLMRobertaForSequenceClassification, XLMRobertaConfig
 from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
 from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
+from transformers import DistilBertModel, DistilBertTokenizer, DistilBertConfig, DistilBertForSequenceClassification
 
 tokenizer = None
 device = None
@@ -112,6 +113,10 @@ def get_model(model_name):
         tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
         model = BertForSequenceClassification.from_pretrained('bert-base-multilingual-cased')
 
+    elif model_name == 'd-bert':
+        tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-multilingual-cased')
+        model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-multilingual-cased')
+
     return model
 
 def train(lr, train, test, epochs, verbosity, model, out_f):
@@ -143,7 +148,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             # Accuracy
             if i % verbosity == 0:
                 correct = (predicted == y).float().sum()
-                my_print(out_f, "Epoch ({}.{}), Loss: {:.3f}, Accuracy: {:.3f}".format(epoch ,i, loss, correct/x.shape[0]))
+                my_print(out_f, "Epoch ({}.{}), Loss: {:.3f}, Accuracy: {:.3f}".format(epoch ,i, loss.item(), correct/x.shape[0]))
             i += 1
             break
 
@@ -153,13 +158,13 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         test_path = out_f.replace('.txt', '_test_preds.csv')
         test_acc = evaluate_data(test, model, test_path) 
 
-        my_print(out_f, '({}.{:03d}) Loss: {} Test Acc: {}'.format(epoch, i, loss, test_acc))
+        my_print(out_f, '({}.{:03d}) Loss: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc))
 
     # Make train predictions at the end and get accuracy
     train_path = out_f.replace('.txt', '_train_preds.csv')
     train_acc = evaluate_data(train, model, train_path)    
 
-    my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {}'.format(epoch, i, loss, train_acc))
+    my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {}'.format(epoch, i, loss.item(), train_acc))
 
     return model
 
@@ -210,7 +215,7 @@ def get_preds(x, y, model):
 
     _, predicted = torch.max(logits.detach(), 1)
 
-    return loss.item(), predicted, y
+    return loss, predicted, y
 
 def read_file(path):
     """

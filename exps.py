@@ -2,7 +2,7 @@ import os
 
 langs = ['en', 'ja', 'dk', 'fr']
 tasks = ['sem', 'syn']
-models = ['xlm', 'bert']
+models = ['d-bert', 'roberta', 'xlm', 'bert']
 
 print("Starting experiments")
 
