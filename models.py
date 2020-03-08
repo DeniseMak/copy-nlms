@@ -169,20 +169,16 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         test_path = out_f.replace('.txt', '_test_preds.csv')
         train_path = out_f.replace('.txt', '_train_preds.csv')
         test_path = './results/test_preds.csv'
-        open(test_path, "w+").close() 
+        open(test_path, "w+").close() # clear prev preds/create file
         evaluate_data(test, model, test_path)
-
         test_res = pd.read_csv(test_path)
         print(test_res)
-
-        # train_res.to_csv(out_f.replace('.txt', 'train_preds.csv'))
-        # test_res.to_csv(te
 
         # train_acc = len(np.where(train_res['preds'] == train_res['true'])) / len(train_res)
         correct = np.where(test_res['preds'] == test_res['true'])
         print(correct)
         print(len(correct))
-        test_acc = len(correct) / len(test_res)
+        test_acc = len(correct[0]) / len(test_res)
 
         my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc, test_acc))
         exit()
