@@ -24,13 +24,6 @@ device = None
 MAX_LEN = None
 TASK = None
 
-# if torch.cuda.is_available():
-#     print('Using Cuda')
-#     device = torch.device("cuda")
-# else:
-#     print('Using CPU')
-#     device = torch.device("cpu")
-
 class Data(Dataset):
     def __init__(self, path):
         self.data = pd.read_csv(path).reset_index()
@@ -159,8 +152,6 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
             loss.backward()
             optimizer.step()
         
-            # print(evaluate_data(test, model))
-
             # Accuracy
             if i % verbosity == 0:
                 # print
@@ -175,6 +166,8 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         # train_res = evaluate_data(train, model)
         model.eval()
 
+        test_path = out_f.replace('.txt', '_test_preds.csv')
+        train_path = out_f.replace('.txt', '_train_preds.csv')
         test_path = './results/test_preds.csv'
         open(test_path, "w+").close() 
         evaluate_data(test, model, test_path)
@@ -188,6 +181,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         # train_acc = len(np.where(train_res['preds'] == train_res['true'])) / len(train_res)
         correct = np.where(test_res['preds'] == test_res['true'])
         print(correct)
+        print(len(correct))
         test_acc = len(correct) / len(test_res)
 
         my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc, test_acc))
