@@ -196,7 +196,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
 def evaluate_data(data, model, path):
 
     with open(path, 'a') as f:
-        f.write('sents, true, preds \n')
+        f.write('sents,true,preds\n')
     # all_sents = list()
     # all_preds = list()
     # all_true = list()
@@ -208,7 +208,7 @@ def evaluate_data(data, model, path):
 
             rows = list(zip(sents, y, predicted))
             for row in rows:
-                f.write(', '.join([str(i) for i in row]) + '\n')
+                f.write(','.join([str(i) for i in row]) + '\n')
 
 
 def get_preds(x, y, model):
