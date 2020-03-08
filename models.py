@@ -186,7 +186,9 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         # test_res.to_csv(te
 
         # train_acc = len(np.where(train_res['preds'] == train_res['true'])) / len(train_res)
-        test_acc = len(np.where(test_res['preds'] == test_res['true'])) / len(test_res)
+        correct = np.where(test_res['preds'] == test_res['true'])
+        print(correct)
+        test_acc = len(correct) / len(test_res)
 
         my_print(out_f, '({}.{:03d}) Loss: {} Train Acc: {} Test Acc: {}'.format(epoch, i, loss.item(), test_acc, test_acc))
         exit()
