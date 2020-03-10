@@ -190,6 +190,7 @@ def evaluate_data(data, model, path):
 
             rows = list(zip(sents, y, predicted))
             for row in rows:
+                print(row)
                 f.write(','.join([str(i) for i in row]) + '\n')
 
     res = pd.read_csv(path)
