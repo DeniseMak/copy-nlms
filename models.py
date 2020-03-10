@@ -179,7 +179,7 @@ def evaluate_data(data, model, path):
     :return acc: (float) Accuracy of the predictions made
     """
     open(path, "w+").close() # clear prev preds/create file
-    with open(path, 'a') as f:
+    with open(path, 'a', encoding='utf-8') as f:
         f.write('sents,true,preds\n')
 
         for sents, x, y in data:
@@ -190,7 +190,6 @@ def evaluate_data(data, model, path):
 
             rows = list(zip(sents, y, predicted))
             for row in rows:
-                print(row)
                 f.write(','.join([str(i) for i in row]) + '\n')
 
     res = pd.read_csv(path)
