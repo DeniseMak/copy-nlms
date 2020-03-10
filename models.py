@@ -129,7 +129,7 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
     :param verbosity: How often to calculate and print test accuracy
     :return model: trained model
     """
-    optimizer = optim.SGD(params=model.parameters(), lr=lr)
+    optimizer = optim.Adadelta(params=model.parameters(), lr=lr)
 
     model = model.to(device)
     
