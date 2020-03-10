@@ -73,7 +73,7 @@ def main():
     
 def my_print(path, string, verbosity=True):
     with open(path, 'a+') as f:
-        f.write(string)
+        f.write(string + "\n")
     if verbosity:
         print(string)
 
