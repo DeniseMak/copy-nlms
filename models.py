@@ -143,13 +143,12 @@ def train(lr, train, test, epochs, verbosity, model, out_f):
         model.train()
         i = 0
         for sents, x, y in train:
-
-            optimizer.zero_grad()
             
             loss, predicted, y = get_preds(x, y, model)
 
             loss.backward()
             optimizer.step()
+            optimizer.zero_grad()
         
             # Accuracy
             if i % verbosity == 0:
