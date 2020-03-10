@@ -16,6 +16,8 @@ from torch.utils.data import Dataset, DataLoader
 
 from transformers import XLMRobertaModel, XLMRobertaTokenizer
 from transformers import XLMRobertaForSequenceClassification, XLMRobertaConfig
+from transformers import RobertaModel, RobertaTokenizer
+from transformers import obertaForSequenceClassification, RobertaConfig
 from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
 from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
 from transformers import DistilBertModel, DistilBertTokenizer, DistilBertConfig, DistilBertForSequenceClassification
@@ -116,6 +118,10 @@ def get_model(model_name):
     elif model_name == 'd-bert':
         tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-multilingual-cased')
         model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-multilingual-cased')
+
+    elif model_name == 'en-roberta':
+        tokenizer = RobertaForSequenceClassification.from_pretrained('roberta-base')
+        model = RobertaForSequenceClassification.from_pretrained('roberta-base')
 
     return model
 
