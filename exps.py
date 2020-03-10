@@ -1,8 +1,8 @@
 import os
 
-langs = ['en', 'ja', 'dk', 'fr']
+langs = ['ja', 'en', 'dk', 'fr']
 tasks = ['sem', 'syn']
-models = ['d-bert', 'roberta', 'xlm', 'bert']
+models = ['d-bert']#, 'roberta', 'xlm', 'bert']
 
 print("Starting experiments")
 

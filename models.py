@@ -218,6 +218,8 @@ def get_preds(x, y, model):
     output = model(x, labels=y)
     loss, logits = output
 
+    print(logits)
+
     _, predicted = torch.max(logits.detach(), 1)
 
     return loss, predicted, y
