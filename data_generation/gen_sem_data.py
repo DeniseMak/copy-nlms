@@ -92,11 +92,11 @@ def to_text(pairs, lang):
     text = list()
     nums = list()
 
-    with open('./templates/' + lang + '_templates.txt', 'r') as f:
-        sentences = f.readlines()
+    # with open('./templates/' + lang + '_templates.txt', 'r') as f:
+    #     sentences = f.readlines()
 
     for pair in pairs:
-        sent = random.choice(sentences)
+        # sent = random.choice(sentences)
         new = [num2words(pair[0], lang=lang)]
         num_pair = list()
         if pair[1] > -1:
@@ -108,7 +108,7 @@ def to_text(pairs, lang):
             new[i] = re.sub(' +', ' ', new[i])
             new[i] = new[i].strip()
             num_pair.append(new[i])
-            new[i] = sent.replace('***', new[i]).strip()
+            # new[i] = sent.replace('***', new[i]).strip()
         nums.append('; '.join(num_pair))
         text.append('; '.join(new))
 

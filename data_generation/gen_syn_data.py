@@ -163,7 +163,7 @@ def to_sent(data, lang):
     with open('./templates/' + lang + '_templates.txt', 'r', encoding="utf-8") as f:
         sentences = f.readlines()
 
-
+    sentences = ['***']
     sents = list()
     for item in data:
         string = random.choice(sentences).strip()
