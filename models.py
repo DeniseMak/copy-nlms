@@ -17,7 +17,7 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import XLMRobertaModel, XLMRobertaTokenizer
 from transformers import XLMRobertaForSequenceClassification, XLMRobertaConfig
 from transformers import RobertaModel, RobertaTokenizer
-from transformers import obertaForSequenceClassification, RobertaConfig
+from transformers import RobertaForSequenceClassification, RobertaConfig
 from transformers import XLMForSequenceClassification, XLMTokenizer, XLMConfig
 from transformers import BertModel, BertTokenizer, BertConfig, BertForSequenceClassification
 from transformers import DistilBertModel, DistilBertTokenizer, DistilBertConfig, DistilBertForSequenceClassification
