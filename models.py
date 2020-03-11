@@ -59,7 +59,7 @@ def main():
         device = torch.device("cpu")
  
     my_print(args.out_f, 'Loading model')
-    model = get_model(args.model)
+    model = get_model(args.model, args.freeze)
     my_print(args.out_f, 'Getting max sequence len')
     MAX_LEN = get_seq_len(args.train)
 
@@ -94,7 +94,7 @@ def get_seq_len(path):
     # Account for additional tokens
     return max_len + 2
 
-def get_model(model_name):
+def get_model(model_name, freeze):
     """
     Load the model and tokenizer function specified by the user
 
@@ -122,6 +122,13 @@ def get_model(model_name):
     elif model_name == 'en-roberta':
         tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
         model = RobertaForSequenceClassification.from_pretrained('roberta-base')
+
+    if freeze:
+        param = None
+        for param in model.features.parameters():
+            param.requires_grad = False
+        param.requires_grad = True
+
 
     return model
 
@@ -184,7 +191,7 @@ def evaluate_data(data, model, path):
     :return acc: (float) Accuracy of the predictions made
     """
     open(path, "w+").close() # clear prev preds/create file
-    with open(path, 'a', encoding='utf-8') as f:
+    with open(path, 'a', encoding='utf-8') as f: #, 
         f.write('sents,true,preds\n')
 
         for sents, x, y in data:
@@ -218,7 +225,7 @@ def get_preds(x, y, model):
     output = model(x, labels=y)
     loss, logits = output
 
-    print(logits)
+    # print(logits)
 
     _, predicted = torch.max(logits.detach(), 1)
 
@@ -308,6 +315,7 @@ def parse_all_args():
             help="How often to calculate and print accuracy [default: 1]",default=1)
     parser.add_argument("-mb",type=int,\
             help="Minibatch size [default: 32]",default=32)
+    parser.add_argument('-freeze', dest='freeze', help='Whether or not to fine tune the model', action='store_true', default=False)
 
     return parser.parse_args()
 
