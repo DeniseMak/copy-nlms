@@ -1,0 +1,14 @@
+Using Cuda
+Loading model
+Getting max sequence len
+Max seq len = 27
+Loading data...
+Data loaded
+Starting training
+Epoch (0.0), Loss: 0.687, Accuracy: 0.656
+(0.001) Loss: 0.6874444484710693 Test Acc: 0.6683
+Epoch (1.0), Loss: 0.669, Accuracy: 0.719
+(1.001) Loss: 0.668814480304718 Test Acc: 0.6604
+Epoch (2.0), Loss: 0.674, Accuracy: 0.625
+(2.001) Loss: 0.6739896535873413 Test Acc: 0.6744
+Epoch (3.0), Loss: 0.668, Accuracy: 0.594
