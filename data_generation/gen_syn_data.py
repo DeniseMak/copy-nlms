@@ -21,7 +21,7 @@ def main():
         nums.append(' '.join(num))
     num_data = pd.DataFrame({'nums' : nums, 'labels' : labels})
 
-    text = to_sent(text, args.lang)
+    text = to_sent(text, args.lang, args.sent)
     all_data = pd.DataFrame({'sents' : text, 'labels' : labels})
 
     train_data, test_data = train_test_split(all_data, test_size=0.2)
@@ -152,7 +152,7 @@ def to_text(pairs, lang):
 
     return text
 
-def to_sent(data, lang):
+def to_sent(data, lang, sent):
     """
     Format number pairs write to a specified file
     :param path: (str) Filepath to write to
@@ -163,7 +163,8 @@ def to_sent(data, lang):
     with open('./templates/' + lang + '_templates.txt', 'r', encoding="utf-8") as f:
         sentences = f.readlines()
 
-    sentences = ['***']
+    if not sent:
+        sentences = ['***']
     sents = list()
     for item in data:
         string = random.choice(sentences).strip()
@@ -195,6 +196,7 @@ def parse_all_args():
             help="Language of data to be generated [default=en]", default="en")
     parser.add_argument("-load",type=str,\
             help="Location of  previous set of integer pairs to create data")
+    parser.add_argument('-sent', dest='sent', help='Whether or not to generate numbers in sentences', action='store_true', default=False)
 
     args = parser.parse_args()
 
@@ -203,6 +205,15 @@ def parse_all_args():
 
     if not os.path.exists(args.dir):
         os.makedirs(args.dir)
+
+    if args.sent:
+        args.dir += 'sent/'
+    else:
+        args.dir += 'no-sent/'
+
+    if not os.path.exists(args.dir):
+        os.makedirs(args.dir)
+
 
     return args
 

@@ -20,7 +20,7 @@ def main():
     if not args.load:
         output_pairs(args.dir + "sem_int_pairs.txt", pairs)
     
-    final, nums = to_text(pairs, args.lang)
+    final, nums = to_text(pairs, args.lang, args.sent)
 
     num_data = pd.DataFrame({'nums' : nums, 'labels' : labels})
     all_data = pd.DataFrame({'sents' : final, 'labels' : labels})
@@ -31,7 +31,7 @@ def main():
     test_data = test_data.reset_index()
     del train_data['index']
     del test_data['index']
-    
+
     # Output
     train_data.to_csv(args.dir + args.lang + "_sem_train.csv")
     test_data.to_csv(args.dir + args.lang + "_sem_test.csv") 
@@ -80,7 +80,7 @@ def filter_pairs(pairs, s):
 
     return new_pairs, labels
 
-def to_text(pairs, lang):
+def to_text(pairs, lang, sent):
     """
     Convert positive integers in list of lists to word form
 
@@ -92,11 +92,12 @@ def to_text(pairs, lang):
     text = list()
     nums = list()
 
-    # with open('./templates/' + lang + '_templates.txt', 'r') as f:
-    #     sentences = f.readlines()
+    with open('./templates/' + lang + '_templates.txt', 'r') as f:
+        sentences = f.readlines()
 
     for pair in pairs:
-        # sent = random.choice(sentences)
+        if sent:
+            sent = random.choice(sentences)
         new = [num2words(pair[0], lang=lang)]
         num_pair = list()
         if pair[1] > -1:
@@ -108,7 +109,8 @@ def to_text(pairs, lang):
             new[i] = re.sub(' +', ' ', new[i])
             new[i] = new[i].strip()
             num_pair.append(new[i])
-            # new[i] = sent.replace('***', new[i]).strip()
+            if sent:
+                new[i] = sent.replace('***', new[i]).strip()
         nums.append('; '.join(num_pair))
         text.append('; '.join(new))
 
@@ -213,11 +215,20 @@ def parse_all_args():
             help="Language of data to be generated [default=en]", default="en")
     parser.add_argument("-load",type=str,\
             help="Location of  previous set of integer pairs to create data")
+    parser.add_argument('-sent', dest='sent', help='Whether or not to generate numbers in sentences', action='store_true', default=False)
     
     args = parser.parse_args()
 
     if args.dir[-1] != "/":
         args.dir += "/"
+
+    if not os.path.exists(args.dir):
+        os.makedirs(args.dir)
+
+    if args.sent:
+        args.dir += 'sent/'
+    else:
+        args.dir += 'no-sent/'
 
     if not os.path.exists(args.dir):
         os.makedirs(args.dir)
